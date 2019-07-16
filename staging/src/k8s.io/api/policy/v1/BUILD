@@ -1,25 +1,25 @@
-package(default_visibility = ["//visibility:public"])
-
-load(
-    "@io_bazel_rules_go//go:def.bzl",
-    "go_library",
-)
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
     srcs = [
         "doc.go",
+        "generated.pb.go",
         "register.go",
         "types.go",
+        "types_swagger_doc_generated.go",
         "zz_generated.deepcopy.go",
     ],
-    importpath = "k8s.io/kubernetes/pkg/apis/policy",
+    importmap = "k8s.io/kubernetes/vendor/k8s.io/api/policy/v1",
+    importpath = "k8s.io/api/policy/v1",
+    visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/core:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/intstr:go_default_library",
+        "//vendor/github.com/gogo/protobuf/proto:go_default_library",
+        "//vendor/github.com/gogo/protobuf/sortkeys:go_default_library",
     ],
 )
 
@@ -32,13 +32,7 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//pkg/apis/policy/fuzzer:all-srcs",
-        "//pkg/apis/policy/install:all-srcs",
-        "//pkg/apis/policy/v1:all-srcs",
-        "//pkg/apis/policy/v1beta1:all-srcs",
-        "//pkg/apis/policy/validation:all-srcs",
-    ],
+    srcs = [":package-srcs"],
     tags = ["automanaged"],
+    visibility = ["//visibility:public"],
 )
