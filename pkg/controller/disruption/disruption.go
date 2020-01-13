@@ -107,8 +107,18 @@ type controllerAndScale struct {
 }
 
 // podControllerFinder is a function type that maps a pod to a list of
-// controllers and their scale.
-type podControllerFinder func(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error)
+// controllers and their scale. If successful, the controllerAndScale will contain
+// the scale for the controller referenced in the controllerRef. If it is not
+// successful, the function will return an error. There are two types of errors
+// than can occur. It might be impossible to look up the scale because of temporary
+// problems, like not being able to reach the APIServer. These are considered
+// transient, so the error should be reported and the controller will retry
+// the reconcile loop. The other type of error is that the pod or the controller
+// is not configured correctly for the PDB which makes it impossible to look up scale.
+// An example here would be that the pod references a CR that does not implement scale.
+// In these situations the error is not considered transient and the controller
+// will disregard the pod and continue the reconcile loop for the other pods.
+type podControllerFinder func(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error)
 
 func NewDisruptionController(
 	podInformer coreinformers.PodInformer,
@@ -185,100 +195,104 @@ var (
 )
 
 // getPodReplicaSet finds a replicaset which has no matching deployments.
-func (dc *DisruptionController) getPodReplicaSet(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+func (dc *DisruptionController) getPodReplicaSet(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error) {
 	ok, err := verifyGroupKind(controllerRef, controllerKindRS.Kind, []string{"apps", "extensions"})
 	if !ok || err != nil {
-		return nil, err
+		return
 	}
 	rs, err := dc.rsLister.ReplicaSets(namespace).Get(controllerRef.Name)
 	if err != nil {
 		// The only possible error is NotFound, which is ok here.
-		return nil, nil
+		return
 	}
 	if rs.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
 	controllerRef = metav1.GetControllerOf(rs)
 	if controllerRef != nil && controllerRef.Kind == controllerKindDep.Kind {
 		// Skip RS if it's controlled by a Deployment.
-		return nil, nil
+		return
 	}
-	return &controllerAndScale{rs.UID, *(rs.Spec.Replicas)}, nil
+	cas = &controllerAndScale{rs.UID, *(rs.Spec.Replicas)}
+	return
 }
 
 // getPodStatefulSet returns the statefulset referenced by the provided controllerRef.
-func (dc *DisruptionController) getPodStatefulSet(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+func (dc *DisruptionController) getPodStatefulSet(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error) {
 	ok, err := verifyGroupKind(controllerRef, controllerKindSS.Kind, []string{"apps"})
 	if !ok || err != nil {
-		return nil, err
+		return
 	}
 	ss, err := dc.ssLister.StatefulSets(namespace).Get(controllerRef.Name)
 	if err != nil {
 		// The only possible error is NotFound, which is ok here.
-		return nil, nil
+		return
 	}
 	if ss.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
 
-	return &controllerAndScale{ss.UID, *(ss.Spec.Replicas)}, nil
+	cas = &controllerAndScale{ss.UID, *(ss.Spec.Replicas)}
+	return
 }
 
 // getPodDeployments finds deployments for any replicasets which are being managed by deployments.
-func (dc *DisruptionController) getPodDeployment(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+func (dc *DisruptionController) getPodDeployment(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error) {
 	ok, err := verifyGroupKind(controllerRef, controllerKindRS.Kind, []string{"apps", "extensions"})
 	if !ok || err != nil {
-		return nil, err
+		return
 	}
 	rs, err := dc.rsLister.ReplicaSets(namespace).Get(controllerRef.Name)
 	if err != nil {
 		// The only possible error is NotFound, which is ok here.
-		return nil, nil
+		return
 	}
 	if rs.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
 	controllerRef = metav1.GetControllerOf(rs)
 	if controllerRef == nil {
 		// This case will be covered by the getPodReplicaSet finder.
-		return nil, nil
+		return
 	}
 
 	ok, err = verifyGroupKind(controllerRef, controllerKindDep.Kind, []string{"apps", "extensions"})
 	if !ok || err != nil {
-		return nil, err
+		return
 	}
 	deployment, err := dc.dLister.Deployments(rs.Namespace).Get(controllerRef.Name)
 	if err != nil {
 		// The only possible error is NotFound, which is ok here.
-		return nil, nil
+		return
 	}
 	if deployment.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
-	return &controllerAndScale{deployment.UID, *(deployment.Spec.Replicas)}, nil
+	cas = &controllerAndScale{deployment.UID, *(deployment.Spec.Replicas)}
+	return
 }
 
-func (dc *DisruptionController) getPodReplicationController(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+func (dc *DisruptionController) getPodReplicationController(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error) {
 	ok, err := verifyGroupKind(controllerRef, controllerKindRC.Kind, []string{""})
 	if !ok || err != nil {
-		return nil, err
+		return
 	}
 	rc, err := dc.rcLister.ReplicationControllers(namespace).Get(controllerRef.Name)
 	if err != nil {
 		// The only possible error is NotFound, which is ok here.
-		return nil, nil
+		return
 	}
 	if rc.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
-	return &controllerAndScale{rc.UID, *(rc.Spec.Replicas)}, nil
+	cas = &controllerAndScale{rc.UID, *(rc.Spec.Replicas)}
+	return
 }
 
-func (dc *DisruptionController) getScaleController(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+func (dc *DisruptionController) getScaleController(controllerRef *metav1.OwnerReference, namespace string) (cas *controllerAndScale, transient bool, err error) {
 	gv, err := schema.ParseGroupVersion(controllerRef.APIVersion)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	gk := schema.GroupKind{
@@ -288,21 +302,27 @@ func (dc *DisruptionController) getScaleController(controllerRef *metav1.OwnerRe
 
 	mapping, err := dc.mapper.RESTMapping(gk, gv.Version)
 	if err != nil {
-		return nil, err
+		if apimeta.IsNoMatchError(err) {
+			return
+		}
+		transient = true
+		return
 	}
 	gr := mapping.Resource.GroupResource()
 
 	scale, err := dc.scaleNamespacer.Scales(namespace).Get(gr, controllerRef.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil, nil
+			return
 		}
-		return nil, err
+		transient = true
+		return
 	}
 	if scale.UID != controllerRef.UID {
-		return nil, nil
+		return
 	}
-	return &controllerAndScale{scale.UID, scale.Spec.Replicas}, nil
+	cas = &controllerAndScale{scale.UID, scale.Spec.Replicas}
+	return
 }
 
 func verifyGroupKind(controllerRef *metav1.OwnerReference, expectedKind string, expectedGroups []string) (bool, error) {
@@ -667,11 +687,29 @@ func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget
 
 		// Check all the supported controllers to find the desired scale.
 		foundController := false
+		warningEventCreated := false
 		for _, finder := range dc.finders() {
 			var controllerNScale *controllerAndScale
-			controllerNScale, err = finder(controllerRef, pod.Namespace)
+			var transient bool
+			controllerNScale, transient, err = finder(controllerRef, pod.Namespace)
 			if err != nil {
-				return
+				// If the error is caused by not being able to reach the APIServer or
+				// any other reason that isn't caused by a problem with the controller resource,
+				// we just return the error an rely on the sync retry to handle the issue.
+				if transient {
+					return
+				}
+				// If the error is caused by an invalid controllerRef or invalid controller
+				// resource (doesn't implement scale), we generate a warning event but keep
+				// looking at the other pods covered by the PDB. The current Pod is not
+				// included in the coveredPods slice, so it will be ignored by the PDB
+				// and eviction api
+				dc.recorder.Event(pdb, v1.EventTypeWarning, "InvalidControllerRef",
+					fmt.Sprintf("controller for pod %q is not valid: %s", pod.Name, err.Error()))
+				warningEventCreated = true // Only generate one event per pod.
+				// Don't try additional finder functions since we know they will
+				// not succeed. Avoid generating unnecessary warning events.
+				break
 			}
 			if controllerNScale != nil {
 				controllerScale[controllerNScale.UID] = controllerNScale.scale
@@ -685,15 +723,15 @@ func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget
 		// or the controller does not support the scale subresource. If this happens,
 		// an event is created and the pod is ignored for the purposes of computing
 		// the values for the PDB.
-		if !foundController {
+		if !foundController && !warningEventCreated {
 			dc.recorder.Event(pdb, v1.EventTypeWarning, "NoScaleController",
 				fmt.Sprintf("controller for pod %q does not exist or does not support scale", pod.Name))
 		}
 	}
 
 	// If the map does not have any entries, it means none of the pods has a controller that
-	// could give us the desired scale.
-	// TODO: Consider if this should return an error in addition to creating the event.
+	// could give us the desired scale. This also means that the coveredPods slice will be
+	// empty and the number of healthy pods will be zero.
 	if len(controllerScale) == 0 {
 		dc.recorder.Event(pdb, v1.EventTypeWarning, "NoScaleControllers",
 			"No controllers found that support scale")

@@ -994,7 +994,7 @@ func TestBasicFinderFunctions(t *testing.T) {
 				UID:        tc.uid,
 			}
 
-			controllerAndScale, _ := tc.finderFunc(controllerRef, metav1.NamespaceDefault)
+			controllerAndScale, _, _ := tc.finderFunc(controllerRef, metav1.NamespaceDefault)
 
 			if controllerAndScale == nil {
 				if tc.findsScale {
@@ -1092,7 +1092,7 @@ func TestDeploymentFinderFunction(t *testing.T) {
 				UID:        rs.UID,
 			}
 
-			controllerAndScale, _ := dc.getPodDeployment(controllerRef, metav1.NamespaceDefault)
+			controllerAndScale, _, _ := dc.getPodDeployment(controllerRef, metav1.NamespaceDefault)
 
 			if controllerAndScale == nil {
 				if tc.findsScale {
