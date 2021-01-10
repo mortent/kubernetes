@@ -28,10 +28,12 @@ import (
 
 	apps "k8s.io/api/apps/v1"
 	autoscalingapi "k8s.io/api/autoscaling/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -49,6 +51,7 @@ import (
 	"k8s.io/klog/v2"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/testutil"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -72,6 +75,8 @@ func (ps *pdbStates) Get(key string) policy.PodDisruptionBudget {
 func (ps *pdbStates) VerifyPdbStatus(t *testing.T, key string, disruptionsAllowed, currentHealthy, desiredHealthy, expectedPods int32,
 	disruptedPodMap map[string]metav1.Time) {
 	actualPDB := ps.Get(key)
+	actualConditions := actualPDB.Status.Conditions
+	actualPDB.Status.Conditions = nil
 	expectedStatus := policy.PodDisruptionBudgetStatus{
 		DisruptionsAllowed: disruptionsAllowed,
 		CurrentHealthy:     currentHealthy,
@@ -85,6 +90,22 @@ func (ps *pdbStates) VerifyPdbStatus(t *testing.T, key string, disruptionsAllowe
 		debug.PrintStack()
 		t.Fatalf("PDB %q status mismatch.  Expected %+v but got %+v.", key, expectedStatus, actualStatus)
 	}
+
+	cond := apimeta.FindStatusCondition(actualConditions, DisruptionAllowedCondition)
+	if cond == nil {
+		t.Fatalf("Expected condition %q, but didn't find it", DisruptionAllowedCondition)
+	}
+	if disruptionsAllowed > 0 {
+		if cond.Status != metav1.ConditionTrue {
+			t.Fatalf("Expected condition %q to have status %q, but was %q",
+				DisruptionAllowedCondition, metav1.ConditionTrue, cond.Status)
+		}
+	} else {
+		if cond.Status != metav1.ConditionFalse {
+			t.Fatalf("Expected condition %q to have status %q, but was %q",
+				DisruptionAllowedCondition, metav1.ConditionFalse, cond.Status)
+		}
+	}
 }
 
 func (ps *pdbStates) VerifyDisruptionAllowed(t *testing.T, key string, disruptionsAllowed int32) {
@@ -92,6 +113,29 @@ func (ps *pdbStates) VerifyDisruptionAllowed(t *testing.T, key string, disruptio
 	if pdb.Status.DisruptionsAllowed != disruptionsAllowed {
 		debug.PrintStack()
 		t.Fatalf("PodDisruptionAllowed mismatch for PDB %q.  Expected %v but got %v.", key, disruptionsAllowed, pdb.Status.DisruptionsAllowed)
+	}
+}
+
+type expectedEvent struct {
+	objectName string
+	reason string
+	message string
+}
+
+func verifyEvents(t *testing.T, dc *disruptionController, expEvents... expectedEvent) {
+	events := dc.recorder.Events
+	for i, expEvent := range expEvents {
+		found := false
+		for _, e := range events {
+			if expEvent.objectName == e.InvolvedObject.Name &&
+				expEvent.reason == e.Reason &&
+				expEvent.message == e.Message {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("Expected event %d not found", i)
+		}
 	}
 }
 
@@ -107,6 +151,8 @@ type disruptionController struct {
 
 	coreClient  *fake.Clientset
 	scaleClient *scalefake.FakeScaleClient
+
+	recorder *testutil.FakeRecorder
 }
 
 var customGVK = schema.GroupVersionKind{
@@ -123,7 +169,10 @@ func newFakeDisruptionController() (*disruptionController, *pdbStates) {
 
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypeWithName(customGVK, &v1.Service{})
+	scheme.AddKnownTypeWithName(batchv1beta1.SchemeGroupVersion.WithKind("CronJob"), &batchv1beta1.CronJob{})
 	fakeScaleClient := &scalefake.FakeScaleClient{}
+
+	fakeRecorder := testutil.NewFakeRecorder()
 
 	dc := NewDisruptionController(
 		informerFactory.Core().V1().Pods(),
@@ -144,6 +193,8 @@ func newFakeDisruptionController() (*disruptionController, *pdbStates) {
 	dc.dListerSynced = alwaysReady
 	dc.ssListerSynced = alwaysReady
 
+	dc.recorder = fakeRecorder
+
 	informerFactory.Start(context.TODO().Done())
 	informerFactory.WaitForCacheSync(nil)
 
@@ -157,6 +208,7 @@ func newFakeDisruptionController() (*disruptionController, *pdbStates) {
 		informerFactory.Apps().V1().StatefulSets().Informer().GetStore(),
 		coreClient,
 		fakeScaleClient,
+		fakeRecorder,
 	}, ps
 }
 
@@ -571,6 +623,64 @@ func TestScaleResource(t *testing.T) {
 	ps.VerifyPdbStatus(t, pdbName, disruptionsAllowed, pods, replicas-maxUnavailable, replicas, map[string]metav1.Time{})
 }
 
+func TestIgnorePodsWithoutController(t *testing.T) {
+	dc, ps := newFakeDisruptionController()
+
+	pdb, pdbName := newMaxUnavailablePodDisruptionBudget(t, intstr.FromString("20%"))
+	add(t, dc.pdbStore, pdb)
+
+	ss, _ := newStatefulSet(t, 10)
+	add(t, dc.ssStore, ss)
+
+	ssPod, _ := newPod(t, "ssPod")
+	updatePodOwnerToSs(t, ssPod, ss)
+	add(t, dc.podStore, ssPod)
+
+	pod, _ := newPod(t, "pod")
+	add(t, dc.podStore, pod)
+
+	dc.sync(pdbName)
+	ps.VerifyPdbStatus(t, pdbName, 0, 1, 8, 10, map[string]metav1.Time{})
+	verifyEvents(t, dc, expectedEvent{
+		objectName: pdb.Name,
+		reason: "NoControllerRef",
+		message: "found no controller ref for pod \"pod\"",
+	})
+}
+
+func TestIgnorePodsWithNonScaleController(t *testing.T) {
+	dc, ps := newFakeDisruptionController()
+
+	pdb, pdbName := newMinAvailablePodDisruptionBudget(t, intstr.FromString("20%"))
+	add(t, dc.pdbStore, pdb)
+
+	rs, _ := newReplicaSet(t, 10)
+	add(t, dc.rsStore, rs)
+
+	rsPod, _ := newPod(t, "rsPod")
+	updatePodOwnerToRs(t, rsPod, rs)
+	add(t, dc.podStore, rsPod)
+
+	cjPod, _ := newPod(t, "cjPod")
+	var trueVar = true
+	cjPod.OwnerReferences = append(cjPod.OwnerReferences, metav1.OwnerReference{
+		UID: uuid.NewUUID(),
+		APIVersion: "batch/v1beta1",
+		Kind: "CronJob",
+		Name: "cj",
+		Controller: &trueVar,
+	})
+	add(t, dc.podStore, cjPod)
+
+	dc.sync(pdbName)
+	ps.VerifyPdbStatus(t, pdbName, 0, 1, 2, 10, map[string]metav1.Time{})
+	verifyEvents(t, dc, expectedEvent{
+		objectName: pdb.Name,
+		reason: "NoControllers",
+		message: "found no controllers for pod \"cjPod\"",
+	})
+}
+
 // Verify that multiple controllers doesn't allow the PDB to be set true.
 func TestMultipleControllers(t *testing.T) {
 	const podCount = 2
@@ -652,10 +762,12 @@ func TestReplicationController(t *testing.T) {
 		}
 	}
 
+	// Adding a new pod without a controller ref doesn't make any difference,
+	// since it will be ignored by the disruption controller.
 	rogue, _ := newPod(t, "rogue")
 	add(t, dc.podStore, rogue)
 	dc.sync(pdbName)
-	ps.VerifyDisruptionAllowed(t, pdbName, 0)
+	ps.VerifyPdbStatus(t, pdbName, 1, 3, 2, 3, map[string]metav1.Time{})
 }
 
 func TestStatefulSetController(t *testing.T) {

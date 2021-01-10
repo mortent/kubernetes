@@ -62,7 +62,15 @@ import (
 // If the controller is running on a different node it is important that the two nodes have synced
 // clock (via ntp for example). Otherwise PodDisruptionBudget controller may not provide enough
 // protection against unwanted pod disruptions.
-const DeletionTimeout = 2 * 60 * time.Second
+const (
+	DeletionTimeout = 2 * 60 * time.Second
+
+	DisruptionAllowedCondition = "DisruptionAllowed"
+
+	SyncFailedReason = "SyncFailed"
+	SufficientPodsReason = "SufficientPods"
+	InsufficientPodsReason = "InsufficientPods"
+)
 
 type updater func(*policy.PodDisruptionBudget) error
 
@@ -549,7 +557,7 @@ func (dc *DisruptionController) sync(key string) error {
 	}
 	if err != nil {
 		klog.Errorf("Failed to sync pdb %s/%s: %v", pdb.Namespace, pdb.Name, err)
-		return dc.failSafe(pdb)
+		return dc.failSafe(pdb, err)
 	}
 
 	return nil
@@ -565,15 +573,18 @@ func (dc *DisruptionController) trySync(pdb *policy.PodDisruptionBudget) error {
 		dc.recorder.Eventf(pdb, v1.EventTypeNormal, "NoPods", "No matching pods found")
 	}
 
-	expectedCount, desiredHealthy, err := dc.getExpectedPodCount(pdb, pods)
+	filteredPods, expectedCount, desiredHealthy, err := dc.getExpectedPodCount(pdb, pods)
 	if err != nil {
 		dc.recorder.Eventf(pdb, v1.EventTypeWarning, "CalculateExpectedPodCountFailed", "Failed to calculate the number of expected pods: %v", err)
 		return err
 	}
 
 	currentTime := time.Now()
+	// Use the complete list of pods instead of the filteredPods when computing
+	// the new disruptedPods map. This makes sure that evicted pods stay in the
+	// map until deleted (or reach the deletion timeout).
 	disruptedPods, recheckTime := dc.buildDisruptedPodMap(pods, pdb, currentTime)
-	currentHealthy := countHealthyPods(pods, disruptedPods, currentTime)
+	currentHealthy := countHealthyPods(filteredPods, disruptedPods, currentTime)
 	err = dc.updatePdbStatus(pdb, currentHealthy, desiredHealthy, expectedCount, disruptedPods)
 
 	if err == nil && recheckTime != nil {
@@ -585,7 +596,7 @@ func (dc *DisruptionController) trySync(pdb *policy.PodDisruptionBudget) error {
 	return err
 }
 
-func (dc *DisruptionController) getExpectedPodCount(pdb *policy.PodDisruptionBudget, pods []*v1.Pod) (expectedCount, desiredHealthy int32, err error) {
+func (dc *DisruptionController) getExpectedPodCount(pdb *policy.PodDisruptionBudget, pods []*v1.Pod) (filteredPods []*v1.Pod, expectedCount, desiredHealthy int32, err error) {
 	err = nil
 	// TODO(davidopp): consider making the way expectedCount and rules about
 	// permitted controller configurations (specifically, considering it an error
@@ -593,7 +604,7 @@ func (dc *DisruptionController) getExpectedPodCount(pdb *policy.PodDisruptionBud
 	// handled the same way for integer and percentage minAvailable
 
 	if pdb.Spec.MaxUnavailable != nil {
-		expectedCount, err = dc.getExpectedScale(pdb, pods)
+		filteredPods, expectedCount, err = dc.getExpectedScale(pdb, pods)
 		if err != nil {
 			return
 		}
@@ -610,8 +621,9 @@ func (dc *DisruptionController) getExpectedPodCount(pdb *policy.PodDisruptionBud
 		if pdb.Spec.MinAvailable.Type == intstr.Int {
 			desiredHealthy = pdb.Spec.MinAvailable.IntVal
 			expectedCount = int32(len(pods))
+			filteredPods = pods
 		} else if pdb.Spec.MinAvailable.Type == intstr.String {
-			expectedCount, err = dc.getExpectedScale(pdb, pods)
+			filteredPods, expectedCount, err = dc.getExpectedScale(pdb, pods)
 			if err != nil {
 				return
 			}
@@ -627,7 +639,7 @@ func (dc *DisruptionController) getExpectedPodCount(pdb *policy.PodDisruptionBud
 	return
 }
 
-func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget, pods []*v1.Pod) (expectedCount int32, err error) {
+func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget, pods []*v1.Pod) (podsWithScale []*v1.Pod, expectedCount int32, err error) {
 	// When the user specifies a fraction of pods that must be available, we
 	// use as the fraction's denominator
 	// SUM_{all c in C} scale(c)
@@ -647,13 +659,14 @@ func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget
 	for _, pod := range pods {
 		controllerRef := metav1.GetControllerOf(pod)
 		if controllerRef == nil {
-			err = fmt.Errorf("found no controller ref for pod %q", pod.Name)
-			dc.recorder.Event(pdb, v1.EventTypeWarning, "NoControllerRef", err.Error())
-			return
+			dc.recorder.Event(pdb, v1.EventTypeWarning, "NoControllerRef",
+				fmt.Sprintf("found no controller ref for pod %q", pod.Name))
+			continue
 		}
 
 		// If we already know the scale of the controller there is no need to do anything.
 		if _, found := controllerScale[controllerRef.UID]; found {
+			podsWithScale = append(podsWithScale, pod)
 			continue
 		}
 
@@ -667,14 +680,14 @@ func (dc *DisruptionController) getExpectedScale(pdb *policy.PodDisruptionBudget
 			}
 			if controllerNScale != nil {
 				controllerScale[controllerNScale.UID] = controllerNScale.scale
+				podsWithScale = append(podsWithScale, pod)
 				foundController = true
 				break
 			}
 		}
 		if !foundController {
-			err = fmt.Errorf("found no controllers for pod %q", pod.Name)
-			dc.recorder.Event(pdb, v1.EventTypeWarning, "NoControllers", err.Error())
-			return
+			dc.recorder.Event(pdb, v1.EventTypeWarning, "NoControllers",
+				fmt.Sprintf("found no controllers for pod %q", pod.Name))
 		}
 	}
 
@@ -746,9 +759,20 @@ func (dc *DisruptionController) buildDisruptedPodMap(pods []*v1.Pod, pdb *policy
 // implement the  "fail open" part of the design since if we manage to update
 // this field correctly, we will prevent the /evict handler from approving an
 // eviction when it may be unsafe to do so.
-func (dc *DisruptionController) failSafe(pdb *policy.PodDisruptionBudget) error {
+func (dc *DisruptionController) failSafe(pdb *policy.PodDisruptionBudget, err error) error {
 	newPdb := pdb.DeepCopy()
 	newPdb.Status.DisruptionsAllowed = 0
+
+	if pdb.Status.Conditions == nil {
+		pdb.Status.Conditions = make([]metav1.Condition, 0)
+	}
+	apimeta.SetStatusCondition(&pdb.Status.Conditions, metav1.Condition{
+		Type: DisruptionAllowedCondition,
+		Status: metav1.ConditionFalse,
+		Reason: SyncFailedReason,
+		Message: err.Error(),
+		ObservedGeneration: pdb.Status.ObservedGeneration,
+	})
 	return dc.getUpdater()(newPdb)
 }
 
@@ -769,7 +793,8 @@ func (dc *DisruptionController) updatePdbStatus(pdb *policy.PodDisruptionBudget,
 		pdb.Status.ExpectedPods == expectedCount &&
 		pdb.Status.DisruptionsAllowed == disruptionsAllowed &&
 		apiequality.Semantic.DeepEqual(pdb.Status.DisruptedPods, disruptedPods) &&
-		pdb.Status.ObservedGeneration == pdb.Generation {
+		pdb.Status.ObservedGeneration == pdb.Generation &&
+		conditionsAreUpToDate(pdb) {
 		return nil
 	}
 
@@ -783,7 +808,44 @@ func (dc *DisruptionController) updatePdbStatus(pdb *policy.PodDisruptionBudget,
 		ObservedGeneration: pdb.Generation,
 	}
 
+	if newPdb.Status.Conditions == nil {
+		newPdb.Status.Conditions = make([]metav1.Condition, 0)
+	}
+	if newPdb.Status.DisruptionsAllowed > 0 {
+		apimeta.SetStatusCondition(&newPdb.Status.Conditions, metav1.Condition{
+			Type: DisruptionAllowedCondition,
+			Reason: SufficientPodsReason,
+			Status: metav1.ConditionTrue,
+			ObservedGeneration: newPdb.Status.ObservedGeneration,
+		})
+	} else {
+		apimeta.SetStatusCondition(&newPdb.Status.Conditions, metav1.Condition{
+			Type: DisruptionAllowedCondition,
+			Reason: InsufficientPodsReason,
+			Status: metav1.ConditionFalse,
+			ObservedGeneration: newPdb.Status.ObservedGeneration,
+		})
+	}
+
 	return dc.getUpdater()(newPdb)
+}
+
+func conditionsAreUpToDate(pdb *policy.PodDisruptionBudget) bool {
+	cond := apimeta.FindStatusCondition(pdb.Status.Conditions, DisruptionAllowedCondition)
+	if cond == nil {
+		return false
+	}
+
+	if pdb.Status.DisruptionsAllowed > 0 {
+		if cond.Status == metav1.ConditionTrue && cond.Reason == SufficientPodsReason {
+			return true
+		}
+	} else {
+		if cond.Status == metav1.ConditionFalse && cond.Reason == InsufficientPodsReason {
+			return true
+		}
+	}
+	return false
 }
 
 func (dc *DisruptionController) writePdbStatus(pdb *policy.PodDisruptionBudget) error {
