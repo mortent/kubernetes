@@ -152,9 +152,9 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 	// and their requests. For each claim we determine how many devices
 	// need to be allocated. If not all can be stored in the result, the
 	// claim cannot be allocated.
-	numDevicesTotal := 0
+	minDevicesTotal := 0
 	for claimIndex, claim := range alloc.claimsToAllocate {
-		numDevicesPerClaim := 0
+		minDevicesPerClaim := 0
 
 		for requestIndex := range claim.Spec.Devices.Requests {
 			request := &claim.Spec.Devices.Requests[requestIndex]
@@ -174,6 +174,7 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 					hasSubRequests: true,
 				}
 				requestKey.subRequest = true
+				minDevicesPerRequest := 0
 				for i, subReq := range request.FirstAvailableOf {
 					reqData, err := alloc.validateDeviceRequest(requestAccessor{subRequest: &subReq}, requestKey, pools)
 					if err != nil {
@@ -181,21 +182,31 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 					}
 					requestKey.subRequestIndex = i
 					alloc.requestData[requestKey] = reqData
+					if reqData.numDevices > minDevicesPerRequest {
+						minDevicesPerRequest = reqData.numDevices
+					}
 				}
+				minDevicesPerClaim += minDevicesPerRequest
 			} else {
 				reqData, err := alloc.validateDeviceRequest(requestAccessor{request: request}, requestKey, pools)
 				if err != nil {
 					return nil, err
 				}
 				alloc.requestData[requestKey] = reqData
+				minDevicesPerClaim = reqData.numDevices
 			}
 		}
-		alloc.logger.V(6).Info("Checked claim", "claim", klog.KObj(claim), "numDevices", numDevicesPerClaim)
+		alloc.logger.V(6).Info("Checked claim", "claim", klog.KObj(claim), "minDevices", minDevicesPerClaim)
+		// Check that we don't end up with too many results.
+		// This isn't perfectly reliable because numDevicesPerClaim is
+		// only a lower bound, so allocation also has to check this.
+		if minDevicesPerClaim > resourceapi.AllocationResultsMaxSize {
+			return nil, fmt.Errorf("claim %s: number of requested devices %d exceeds the claim limit of %d", klog.KObj(claim), minDevicesPerClaim, resourceapi.AllocationResultsMaxSize)
+		}
 
 		// If we don't, then we can pre-allocate the result slices for
 		// appending the actual results later.
-		alloc.result[claimIndex].devices = make([]internalDeviceResult, 0, numDevicesPerClaim)
-
+		alloc.result[claimIndex].devices = make([]internalDeviceResult, 0, minDevicesPerClaim)
 		// Constraints are assumed to be monotonic: once a constraint returns
 		// false, adding more devices will not cause it to return true. This
 		// allows the search to stop early once a constraint returns false.
@@ -221,7 +232,7 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 			}
 		}
 		alloc.constraints[claimIndex] = constraints
-		numDevicesTotal += numDevicesPerClaim
+		minDevicesTotal += minDevicesPerClaim
 	}
 
 	// Selecting a device for a request is independent of what has been
@@ -232,9 +243,9 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 	alloc.deviceMatchesRequest = make(map[matchKey]bool)
 
 	// We can estimate the size based on what we need to allocate.
-	alloc.allocatingDevices = make(map[DeviceID]bool, numDevicesTotal)
+	alloc.allocatingDevices = make(map[DeviceID]bool, minDevicesTotal)
 
-	alloc.logger.V(6).Info("Gathered information about devices", "numAllocated", len(alloc.allocatedDevices), "toBeAllocated", numDevicesTotal)
+	alloc.logger.V(6).Info("Gathered information about devices", "numAllocated", len(alloc.allocatedDevices), "minDevicesToBeAllocated", minDevicesTotal)
 
 	// In practice, there aren't going to be many different CEL
 	// expressions. Most likely, there is going to be handful of different
