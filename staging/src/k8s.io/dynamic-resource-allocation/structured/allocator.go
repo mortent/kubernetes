@@ -156,13 +156,6 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 	for claimIndex, claim := range alloc.claimsToAllocate {
 		numDevicesPerClaim := 0
 
-		// If we have any any request that wants "all" devices, we need to
-		// figure out how much "all" is. If some pool is incomplete, we stop
-		// here because allocation cannot succeed. Once we do scoring, we should
-		// stop in all cases, not just when "all" devices are needed, because
-		// pulling from an incomplete might not pick the best solution and it's
-		// better to wait. This does not matter yet as long the incomplete pool
-		// has some matching device.
 		for requestIndex := range claim.Spec.Devices.Requests {
 			request := &claim.Spec.Devices.Requests[requestIndex]
 			requestKey := requestIndices{claimIndex: claimIndex, requestIndex: requestIndex}
@@ -172,24 +165,29 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 				return nil, fmt.Errorf("claim %s, request %s: has subrequests, but the feature is disabled", klog.KObj(claim), request.Name)
 			}
 
-			var reqData requestData
 			if hasSubRequests {
-				reqData = requestData{
+				// A request with subrequests gets multiple entries in alloc.requestData:
+				// - One entry which marks the request as having subrequests.
+				//   This is also where the allocated subrequest gets recorded.
+				// - One entry per subrequest.
+				alloc.requestData[requestKey] = requestData{
 					hasSubRequests: true,
 				}
+				requestKey.subRequest = true
+				for i, subReq := range request.FirstAvailableOf {
+					reqData, err := alloc.validateDeviceRequest(requestAccessor{subRequest: &subReq}, requestKey, pools)
+					if err != nil {
+						return nil, err
+					}
+					requestKey.subRequestIndex = i
+					alloc.requestData[requestKey] = reqData
+				}
 			} else {
-				reqData, err = alloc.validateDeviceRequest(requestAccessor{request: request}, requestKey, pools, hasSubRequests)
+				reqData, err := alloc.validateDeviceRequest(requestAccessor{request: request}, requestKey, pools)
 				if err != nil {
 					return nil, err
 				}
-			}
-			alloc.requestData[requestKey] = reqData
-			for i, subReq := range request.FirstAvailableOf {
-				rd, err := alloc.validateDeviceRequest(requestAccessor{subRequest: &subReq}, requestKey, pools, false)
-				if err != nil {
-					return nil, err
-				}
-				alloc.requestData[requestIndices{claimIndex: claimIndex, requestIndex: requestIndex, subRequest: true, subRequestIndex: i}] = rd
+				alloc.requestData[requestKey] = reqData
 			}
 		}
 		alloc.logger.V(6).Info("Checked claim", "claim", klog.KObj(claim), "numDevices", numDevicesPerClaim)
@@ -357,11 +355,9 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 	return result, nil
 }
 
-func (a *allocator) validateDeviceRequest(request requestAccessor, requestKey requestIndices, pools []*Pool, hasSubRequests bool) (requestData, error) {
+func (a *allocator) validateDeviceRequest(request requestAccessor, requestKey requestIndices, pools []*Pool) (requestData, error) {
 	claim := a.claimsToAllocate[requestKey.claimIndex]
-	requestData := requestData{
-		hasSubRequests: hasSubRequests,
-	}
+	var requestData requestData
 	for i, selector := range request.selectors() {
 		if selector.CEL == nil {
 			// Unknown future selector type!
@@ -395,6 +391,13 @@ func (a *allocator) validateDeviceRequest(request requestAccessor, requestKey re
 		}
 		requestData.numDevices = int(numDevices)
 	case resourceapi.DeviceAllocationModeAll:
+		// If we have any any request that wants "all" devices, we need to
+		// figure out how much "all" is. If some pool is incomplete, we stop
+		// here because allocation cannot succeed. Once we do scoring, we should
+		// stop in all cases, not just when "all" devices are needed, because
+		// pulling from an incomplete might not pick the best solution and it's
+		// better to wait. This does not matter yet as long the incomplete pool
+		// has some matching device.
 		requestData.allDevices = make([]deviceWithID, 0, resourceapi.AllocationResultsMaxSize)
 		for _, pool := range pools {
 			if pool.IsIncomplete {
