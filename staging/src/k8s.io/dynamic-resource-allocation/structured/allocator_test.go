@@ -1361,6 +1361,26 @@ func TestAllocator(t *testing.T) {
 
 			expectError: gomega.MatchError(gomega.ContainSubstring("exceeds the claim limit")),
 		},
+		"some-devices-do-not-specify-property-in-cel-selector": {
+			claimsToAllocate: objects(claimWithRequests(
+				claim0,
+				nil,
+				request(req0, classA, 1, resourceapi.DeviceSelector{
+					CEL: &resourceapi.CELDeviceSelector{
+						Expression: fmt.Sprintf(`device.capacity["%s"].memory.compareTo(quantity("1Gi")) >= 0`, driverA),
+					}}),
+			)),
+			classes: objects(class(classA, driverA)),
+			slices: objects(slice(slice1, node1, pool1, driverA,
+				device(device1, nil, nil),
+				device(device2, map[resourceapi.QualifiedName]resource.Quantity{
+					"memory": resource.MustParse("2Gi"),
+				}, nil),
+			)),
+			node: node(node1, region1),
+
+			expectError: gomega.MatchError(gomega.ContainSubstring("CEL runtime error: no such key: memory")),
+		},
 	}
 
 	for name, tc := range testcases {
