@@ -486,6 +486,25 @@ func GetEtcdStorageDataForNamespaceServedAt(namespace string, version string, re
 		},
 		// --
 
+		// k8s.io/kubernetes/pkg/apis/resource/v1beta2
+		gvr("resource.k8s.io", "v1beta2", "deviceclasses"): {
+			Stub:             `{"metadata": {"name": "class2name"}}`,
+			ExpectedEtcdPath: "/registry/deviceclasses/class2name",
+		},
+		gvr("resource.k8s.io", "v1beta2", "resourceclaims"): {
+			Stub:             `{"metadata": {"name": "claim2name"}, "spec": {"devices": {"requests": [{"name": "req-0", "deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}]}}}`,
+			ExpectedEtcdPath: "/registry/resourceclaims/" + namespace + "/claim2name",
+		},
+		gvr("resource.k8s.io", "v1beta2", "resourceclaimtemplates"): {
+			Stub:             `{"metadata": {"name": "claimtemplate2name"}, "spec": {"spec": {"devices": {"requests": [{"name": "req-0", "deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}]}}}}`,
+			ExpectedEtcdPath: "/registry/resourceclaimtemplates/" + namespace + "/claimtemplate2name",
+		},
+		gvr("resource.k8s.io", "v1beta2", "resourceslices"): {
+			Stub:             `{"metadata": {"name": "node2slice"}, "spec": {"nodeName": "worker1", "driver": "dra.example.com", "pool": {"name": "worker1", "resourceSliceCount": 1}}}`,
+			ExpectedEtcdPath: "/registry/resourceslices/node2slice",
+		},
+		// --
+
 		// k8s.io/apiserver/pkg/apis/apiserverinternal/v1alpha1
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"): {
 			Stub:             `{"metadata":{"name":"sv1.test"},"spec":{}}`,
@@ -516,6 +535,10 @@ func GetEtcdStorageDataForNamespaceServedAt(namespace string, version string, re
 	case "1.33":
 		delete(etcdStorageData, gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas"))
 		delete(etcdStorageData, gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations"))
+		delete(etcdStorageData, gvr("resource.k8s.io", "v1beta2", "deviceclasses"))
+		delete(etcdStorageData, gvr("resource.k8s.io", "v1beta2", "resourceclaims"))
+		delete(etcdStorageData, gvr("resource.k8s.io", "v1beta2", "resourceclaimtemplates"))
+		delete(etcdStorageData, gvr("resource.k8s.io", "v1beta2", "resourceslices"))
 	case "1.32":
 		delete(etcdStorageData, gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas"))
 		delete(etcdStorageData, gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations"))
