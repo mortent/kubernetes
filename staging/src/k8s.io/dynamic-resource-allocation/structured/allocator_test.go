@@ -240,7 +240,7 @@ func device(name string, capacity map[resourceapi.QualifiedName]resource.Quantit
 }
 
 // generate a CompositeDevice object with the given name, deviceMixins, devices, attributes and capacity
-func compositeDevice(name string, deviceMixinNames, deviceNames []string, capacity map[resourceapi.QualifiedName]resource.Quantity, attributes map[resourceapi.QualifiedName]resourceapi.DeviceAttribute) resourceapi.Device {
+func compositeDevice(name string, deviceMixinNames, deviceNames []string, nodeSelection any, capacity map[resourceapi.QualifiedName]resource.Quantity, attributes map[resourceapi.QualifiedName]resourceapi.DeviceAttribute) resourceapi.Device {
 	var deviceMixinRefs []resourceapi.DeviceMixinRef
 	for _, deviceMixinName := range deviceMixinNames {
 		deviceMixinRefs = append(deviceMixinRefs, resourceapi.DeviceMixinRef{
@@ -264,6 +264,16 @@ func compositeDevice(name string, deviceMixinNames, deviceNames []string, capaci
 	device.Composite.Capacity = make(map[resourceapi.QualifiedName]resourceapi.DeviceCapacity, len(capacity))
 	for name, quantity := range capacity {
 		device.Composite.Capacity[name] = resourceapi.DeviceCapacity{Value: quantity}
+	}
+	switch nodeSelection := nodeSelection.(type) {
+	case *v1.NodeSelector:
+		device.Composite.NodeSelector = nodeSelection
+	case string:
+		device.Composite.NodeName = nodeSelection
+	case nil:
+		// do nothing as not setting a node selector at all is allowed.
+	default:
+		panic(fmt.Sprintf("unexpected nodeSelection type %T: %+v", nodeSelection, nodeSelection))
 	}
 	return device
 }
@@ -1997,7 +2007,7 @@ func TestAllocator(t *testing.T) {
 			claimsToAllocate:     objects(claim(claim0, req0, classA)),
 			classes:              objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, nil, nil, nil),
+				compositeDevice(device1, nil, nil, nil, nil, nil),
 			)),
 			node: node(node1, region1),
 
@@ -2009,7 +2019,7 @@ func TestAllocator(t *testing.T) {
 			claimsToAllocate:     objects(claim(claim0, req0, classA)),
 			classes:              objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, nil, map[resourceapi.QualifiedName]resource.Quantity{
+				compositeDevice(device1, nil, nil, nil, map[resourceapi.QualifiedName]resource.Quantity{
 					"memory": resource.MustParse("1Gi"),
 				}, nil),
 			)),
@@ -2031,7 +2041,7 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, []string{"1Gi-mixin"}, nil, nil, nil),
+				compositeDevice(device1, []string{"1Gi-mixin"}, nil, nil, nil, nil),
 				deviceMixin("1Gi-mixin", map[resourceapi.QualifiedName]resource.Quantity{
 					"memory": resource.MustParse("1Gi"),
 				}, nil),
@@ -2055,7 +2065,7 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, []string{"no-match-mixin", "match-mixin"}, nil, nil, nil),
+				compositeDevice(device1, []string{"no-match-mixin", "match-mixin"}, nil, nil, nil, nil),
 				deviceMixin("no-match-mixin",
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("1Gi"),
@@ -2090,7 +2100,7 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, []string{"mixin"}, nil,
+				compositeDevice(device1, []string{"mixin"}, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("1Gi"),
 					}, nil),
@@ -2130,7 +2140,7 @@ func TestAllocator(t *testing.T) {
 						"boolAttribute":   {BoolValue: ptr.To(true)},
 					},
 				),
-				compositeDevice(device3, []string{"no-match-mixin", "match-mixin"}, nil, nil, nil),
+				compositeDevice(device3, []string{"no-match-mixin", "match-mixin"}, nil, nil, nil, nil),
 				deviceMixin("no-match-mixin", nil,
 					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 						"driverVersion":   {VersionValue: ptr.To("2.0.0")},
@@ -2180,7 +2190,7 @@ func TestAllocator(t *testing.T) {
 						"boolAttribute":   {BoolValue: ptr.To(true)},
 					},
 				),
-				compositeDevice(device2, []string{"mixin"}, nil, nil,
+				compositeDevice(device2, []string{"mixin"}, nil, nil, nil,
 					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 						"driverVersion":   {VersionValue: ptr.To("2.0.0")},
 						"numa":            {IntValue: ptr.To(int64(2))},
@@ -2229,17 +2239,17 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, nil,
+				compositeDevice(device1, nil, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("8Gi"),
 					}, nil,
 				),
-				compositeDevice(device2, nil, []string{device1},
+				compositeDevice(device2, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("2Gi"),
 					}, nil,
 				),
-				compositeDevice(device3, nil, nil,
+				compositeDevice(device3, nil, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("4Gi"),
 					}, nil,
@@ -2277,27 +2287,27 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, nil,
+				compositeDevice(device1, nil, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("8Gi"),
 					}, nil,
 				),
-				compositeDevice(device2, nil, []string{device1},
+				compositeDevice(device2, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("2Gi"),
 					}, nil,
 				),
-				compositeDevice(device3, nil, []string{device1},
+				compositeDevice(device3, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("3Gi"),
 					}, nil,
 				),
-				compositeDevice(device4, nil, []string{device1},
+				compositeDevice(device4, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("3Gi"),
 					}, nil,
 				),
-				compositeDevice(device5, nil, []string{device3},
+				compositeDevice(device5, nil, []string{device3}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("1Gi"),
 					}, nil,
@@ -2324,12 +2334,12 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, []string{device1},
+				compositeDevice(device1, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("2Gi"),
 					}, nil,
 				),
-				compositeDevice(device2, nil, []string{device1},
+				compositeDevice(device2, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("1Gi"),
 					}, nil,
@@ -2370,27 +2380,27 @@ func TestAllocator(t *testing.T) {
 			)),
 			classes: objects(class(classA, driverA)),
 			slices: objects(slice(slice1, node1, pool1, driverA,
-				compositeDevice(device1, nil, nil,
+				compositeDevice(device1, nil, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("8Gi"),
 					}, nil,
 				),
-				compositeDevice(device2, nil, []string{device1},
+				compositeDevice(device2, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("4Gi"),
 					}, nil,
 				),
-				compositeDevice(device3, nil, []string{device2},
+				compositeDevice(device3, nil, []string{device2}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("2Gi"),
 					}, nil,
 				),
-				compositeDevice(device4, nil, []string{device2},
+				compositeDevice(device4, nil, []string{device2}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("2Gi"),
 					}, nil,
 				),
-				compositeDevice(device5, nil, nil,
+				compositeDevice(device5, nil, nil, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("1Gi"),
 					}, nil,
@@ -2421,7 +2431,7 @@ func TestAllocator(t *testing.T) {
 				device(device1, map[resourceapi.QualifiedName]resource.Quantity{
 					"memory": resource.MustParse("2Gi"),
 				}, nil),
-				compositeDevice(device2, nil, []string{device1},
+				compositeDevice(device2, nil, []string{device1}, nil,
 					map[resourceapi.QualifiedName]resource.Quantity{
 						"memory": resource.MustParse("4Gi"),
 					}, nil,
@@ -2433,6 +2443,44 @@ func TestAllocator(t *testing.T) {
 				localNodeSelector(node1),
 				deviceAllocationResult(req0, driverA, pool1, device2, false),
 			)},
+		},
+		"foo": {
+			partitionableDevices: true,
+			claimsToAllocate: objects(claimWithRequests(
+				claim0,
+				nil,
+				request(req0, classA, 1, resourceapi.DeviceSelector{
+					CEL: &resourceapi.CELDeviceSelector{
+						Expression: fmt.Sprintf(`device.capacity["%s"].count.compareTo(quantity("8")) == 0`, driverA),
+					},
+				}),
+			)),
+			classes: objects(class(classA, driverA)),
+			slices: objects(
+				slice(slice1, true, pool1, driverA,
+					compositeDevice("4x4-1", nil, nil, nodeLabelSelector("device-4x4", "4x4-1"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("16"),
+					}, nil),
+					compositeDevice("2x4-1", nil, []string{"4x4-1"}, nodeLabelSelector("device-2x4", "2x4-1"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("8"),
+					}, nil),
+					compositeDevice("2x4-2", nil, []string{"4x4-1"}, nodeLabelSelector("device-2x4", "2x4-2"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("8"),
+					}, nil),
+					compositeDevice("2x2-1", nil, []string{"2x4-1"}, nodeLabelSelector("device-2x2", "2x2-1"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("4"),
+					}, nil),
+					compositeDevice("2x2-2", nil, []string{"2x4-1"}, nodeLabelSelector("device-2x2", "2x2-2"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("4"),
+					}, nil),
+					compositeDevice("2x2-3", nil, []string{"2x4-2"}, nodeLabelSelector("device-2x2", "2x2-3"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("4"),
+					}, nil),
+					compositeDevice("2x2-4", nil, []string{"2x4-2"}, nodeLabelSelector("device-2x2", "2x2-4"), map[resourceapi.QualifiedName]resource.Quantity{
+						"count": resource.MustParse("4"),
+					}, nil),
+				),
+			),
 		},
 	}
 
