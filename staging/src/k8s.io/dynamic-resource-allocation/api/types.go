@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 type ResourceSlice struct {
@@ -63,6 +64,8 @@ type BasicDevice struct {
 type CompositeDevice struct {
 	Includes             []DeviceMixinRef // Conversion already resolves this, can be ignored during allocation.
 	ConsumesCapacityFrom []DeviceRef
+	NodeName             string
+	NodeSelector         *core.NodeSelector
 	Attributes           map[QualifiedName]DeviceAttribute
 	Capacity             map[QualifiedName]DeviceCapacity
 }

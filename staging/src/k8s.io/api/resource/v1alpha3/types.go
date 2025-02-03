@@ -290,6 +290,26 @@ type CompositeDevice struct {
 	// +listType=atomic
 	ConsumesCapacityFrom []DeviceRef `json:"consumesCapacityFrom,omitempty" protobuf:"bytes,2,opt,name=consumesCapacityFrom"`
 
+	// NodeName identifies the node where the device is available.
+	//
+	// Must only be set if Spec.AllNodes is set.
+	// Only one or none of NodeName and NodeSelector must be set.
+	//
+	// +optional
+	// +oneOf=DeviceNodeSelection
+	NodeName string `json:"nodeName,omitempty" protobuf:"bytes,3,opt,name=nodeName"`
+
+	// NodeSelector defines the nodes where the device is available.
+	//
+	// Must use exactly one term.
+	//
+	// Must only be set if Spec.AllNodes is set.
+	// Only one or none of NodeName and NodeSelector must be set.
+	//
+	// +optional
+	// +oneOf=DeviceNodeSelection
+	NodeSelector *v1.NodeSelector `json:"nodeSelector,omitempty" protobuf:"bytes,4,opt,name=nodeSelector"`
+
 	// Attributes defines the set of attributes for this device.
 	// The name of each attribute must be unique in that set.
 	//
@@ -303,7 +323,7 @@ type CompositeDevice struct {
 	// The maximum number of attributes and capacities combined is 32.
 	//
 	// +optional
-	Attributes map[QualifiedName]DeviceAttribute `json:"attributes,omitempty" protobuf:"bytes,3,rep,name=attributes"`
+	Attributes map[QualifiedName]DeviceAttribute `json:"attributes,omitempty" protobuf:"bytes,5,rep,name=attributes"`
 
 	// Capacity defines the set of capacities for this device.
 	// The name of each capacity must be unique in that set.
@@ -318,7 +338,7 @@ type CompositeDevice struct {
 	// The maximum number of attributes and capacities combined is 32.
 	//
 	// +optional
-	Capacity map[QualifiedName]resource.Quantity `json:"capacity,omitempty" protobuf:"bytes,4,rep,name=capacity"`
+	Capacity map[QualifiedName]resource.Quantity `json:"capacity,omitempty" protobuf:"bytes,6,rep,name=capacity"`
 }
 
 // DeviceMixinRef defines a reference to a device mixin.

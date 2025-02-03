@@ -286,6 +286,26 @@ type CompositeDevice struct {
 	// +listType=atomic
 	ConsumesCapacityFrom []DeviceRef
 
+	// NodeName identifies the node where the device is available.
+	//
+	// Must only be set if Spec.AllNodes is set.
+	// Only one or none of NodeName and NodeSelector must be set.
+	//
+	// +optional
+	// +oneOf=DeviceNodeSelection
+	NodeName string
+
+	// NodeSelector defines the nodes where the device is available.
+	//
+	// Must use exactly one term.
+	//
+	// Must only be set if Spec.AllNodes is set.
+	// Only one or none of NodeName and NodeSelector must be set.
+	//
+	// +optional
+	// +oneOf=DeviceNodeSelection
+	NodeSelector *core.NodeSelector
+
 	// Attributes defines the set of attributes for this device.
 	// The name of each attribute must be unique in that set.
 	//
