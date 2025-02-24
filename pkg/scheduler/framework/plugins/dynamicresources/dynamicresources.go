@@ -422,7 +422,6 @@ func (pl *DynamicResources) PreFilter(ctx context.Context, state *framework.Cycl
 						}
 					}
 				}
-
 			}
 		}
 	}

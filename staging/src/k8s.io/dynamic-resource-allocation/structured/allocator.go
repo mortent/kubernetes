@@ -691,7 +691,7 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 		if errors.Is(err, errAllocationResultMaxSizeExceeded) {
 			// We don't need to propagate this further, since the allocation size
 			// limit is per claim.
-			return success, nil
+			return false, nil
 		}
 		return success, err
 	}

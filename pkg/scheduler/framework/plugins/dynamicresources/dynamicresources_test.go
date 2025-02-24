@@ -912,8 +912,7 @@ func TestPlugin(t *testing.T) {
 		// We can run in parallel because logging is per-test.
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			name = name
-			// t.Parallel()
+			t.Parallel()
 			nodes := tc.nodes
 			if nodes == nil {
 				nodes = []*v1.Node{workerNode}
