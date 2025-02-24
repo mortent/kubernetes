@@ -492,9 +492,10 @@ type DeviceRequest struct {
 // is typically a request for a single resource like a device, but can
 // also ask for several identical devices.
 //
-// DeviceSubRequest is similar to Request, but doesn't expose the AdminAccess (not
-// supported) or FirstAvailable (recursion not supported) fields, as those can
-// only be set on the top-level request.
+// DeviceSubRequest is similar to Request, but doesn't expose the AdminAccess
+// or FirstAvailable fields, as those can only be set on the top-level request.
+// AdminAccess is not supported for requests with a prioritized list, and
+// recursive FirstAvailable fields are not supported.
 type DeviceSubRequest struct {
 	// Name can be used to reference this subrequest in the list of constraints
 	// or the list of configurations for the claim. References must use the
@@ -673,8 +674,8 @@ type DeviceConstraint struct {
 	// constraint. If this is not specified, this constraint applies to all
 	// requests in this claim.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. If just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the constraint applies to all subrequests.
 	//
 	// +optional
@@ -714,8 +715,8 @@ type DeviceClaimConfiguration struct {
 	// Requests lists the names of requests where the configuration applies.
 	// If empty, it applies to all requests.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. If just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the configuration applies to all subrequests.
 	//
 	// +optional
@@ -950,8 +951,8 @@ type DeviceAllocationConfiguration struct {
 	// Requests lists the names of requests where the configuration applies.
 	// If empty, its applies to all requests.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. If just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the configuration applies to all subrequests.
 	//
 	// +optional

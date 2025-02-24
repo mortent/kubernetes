@@ -122,7 +122,6 @@ func ConfigForResult(deviceConfigurations []resourceapi.DeviceAllocationConfigur
 	var configs []resourceapi.DeviceAllocationConfiguration
 	for _, deviceConfiguration := range deviceConfigurations {
 		if deviceConfiguration.Opaque != nil &&
-			deviceConfiguration.Opaque.Driver == driver &&
 			isMatch(deviceConfiguration.Requests, result.Request) {
 			configs = append(configs, deviceConfiguration)
 		}

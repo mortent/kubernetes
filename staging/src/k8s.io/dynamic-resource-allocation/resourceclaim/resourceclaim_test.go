@@ -396,8 +396,18 @@ func TestConfigForResult(t *testing.T) {
 				Request: "foo",
 				Device:  "device-1",
 			},
-			driver:          "driver-a",
-			expectedConfigs: nil,
+			driver: "driver-a",
+			expectedConfigs: []resourceapi.DeviceAllocationConfiguration{
+				{
+					Source:   resourceapi.AllocationConfigSourceClass,
+					Requests: []string{},
+					DeviceConfiguration: resourceapi.DeviceConfiguration{
+						Opaque: &resourceapi.OpaqueDeviceConfiguration{
+							Driver: "driver-b",
+						},
+					},
+				},
+			},
 		},
 		"empty-requests-match-all": {
 			deviceConfigurations: []resourceapi.DeviceAllocationConfiguration{

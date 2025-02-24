@@ -1110,7 +1110,7 @@ func (wrapper *ResourceClaimWrapper) RequestWithPrioritizedList(deviceClassNames
 	var prioritizedList []resourceapi.DeviceSubRequest
 	for i, deviceClassName := range deviceClassNames {
 		prioritizedList = append(prioritizedList, resourceapi.DeviceSubRequest{
-			Name:            fmt.Sprintf("subreq-%d", i),
+			Name:            fmt.Sprintf("subreq-%d", i+1),
 			AllocationMode:  resourceapi.DeviceAllocationModeExactCount,
 			Count:           1,
 			DeviceClassName: deviceClassName,
