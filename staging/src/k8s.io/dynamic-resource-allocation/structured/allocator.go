@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1beta1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/dynamic-resource-allocation/api"
 	draapi "k8s.io/dynamic-resource-allocation/api"
 	"k8s.io/dynamic-resource-allocation/cel"
 	"k8s.io/klog/v2"
@@ -1024,19 +1023,19 @@ func (alloc *allocator) allocateDevice(r deviceIndices, device deviceWithID, mus
 func (alloc *allocator) checkAvailableCapacity(device deviceWithID) (bool, error) {
 	slice := device.slice
 
-	referencedCapacityPools := sets.New[api.UniqueString]()
+	referencedCapacityPools := sets.New[draapi.UniqueString]()
 	for _, consumedCapacity := range device.basic.ConsumesCapacity {
 		referencedCapacityPools.Insert(consumedCapacity.CapacityPool)
 	}
 
 	// Create a structure that captures the initial capacity for all pools
 	// referenced by the device.
-	availableCapacities := make(map[api.UniqueString]map[api.QualifiedName]api.DeviceCapacity)
+	availableCapacities := make(map[draapi.UniqueString]map[draapi.QualifiedName]draapi.DeviceCapacity)
 	for _, capacityPool := range slice.Spec.CapacityPools {
 		if !referencedCapacityPools.Has(capacityPool.Name) {
 			continue
 		}
-		poolCapacity := make(map[api.QualifiedName]api.DeviceCapacity)
+		poolCapacity := make(map[draapi.QualifiedName]draapi.DeviceCapacity)
 		for name, cap := range capacityPool.Capacity {
 			poolCapacity[name] = cap
 		}

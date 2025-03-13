@@ -688,10 +688,6 @@ func validateBasicDevice(device resource.BasicDevice, fldPath *field.Path, capac
 		allErrs = append(allErrs, field.Invalid(fldPath, combinedLen, fmt.Sprintf("the total number of attributes and capacities must not exceed %d", max)))
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.DRAPartitionableDevices) && len(device.ConsumesCapacity) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("consumesCapacity"), "is required when the PartitionableDevice feature is enabled"))
-	}
-
 	allErrs = append(allErrs, validateSet(device.ConsumesCapacity, resource.ResourceSliceMaxDeviceCapacityConsumptions,
 		func(deviceCapacityConsumption resource.DeviceCapacityConsumption, fldPath *field.Path) field.ErrorList {
 			return validateDeviceCapacityConsumption(deviceCapacityConsumption, fldPath, capacityPoolNames)
@@ -720,10 +716,8 @@ func validateBasicDevice(device resource.BasicDevice, fldPath *field.Path, capac
 		default:
 			allErrs = append(allErrs, field.Invalid(fldPath, nil, "exactly one of `nodeName`, `nodeSelector`, or `allNodes` is required when `perDeviceNodeSelection` is set in the ResourceSlice spec"))
 		}
-	} else {
-		if device.NodeName != "" || device.NodeSelector != nil || device.AllNodes {
-			allErrs = append(allErrs, field.Invalid(fldPath, nil, "`nodeName`, `nodeSelector` and `allNodes` can only be set if `perDeviceNodeSelection` is set in the ResourceSlice spec"))
-		}
+	} else if device.NodeName != "" || device.NodeSelector != nil || device.AllNodes {
+		allErrs = append(allErrs, field.Invalid(fldPath, nil, "`nodeName`, `nodeSelector` and `allNodes` can only be set if `perDeviceNodeSelection` is set in the ResourceSlice spec"))
 	}
 
 	return allErrs
