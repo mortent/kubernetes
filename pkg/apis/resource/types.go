@@ -253,9 +253,6 @@ const ResourceSliceMaxDeviceCapacityConsumptions = 32
 // and capacities if both fields are specified. This is
 // used to validate the fields:
 // * spec.capacityPools[].capacity
-// * spec.mixins.device[].attributes and spec.mixins.device[].capacity
-// * spec.mixins.deviceCapacityConsumption[].capacity
-// * spec.mixins.capacityPool[].capacity
 // * spec.devices[].attributes and spec.devices[].capacity
 // * spec.devices[].consumesCapacity[].capacity
 const ResourceSliceMaxAttributesAndCapacities = 32
@@ -307,7 +304,7 @@ type BasicDevice struct {
 	// is 32. This is the same as the maximum number of capacity
 	// pools allowed in a ResourceSlice.
 	//
-	// +required
+	// +optional
 	// +listType=atomic
 	ConsumesCapacity []DeviceCapacityConsumption
 
@@ -345,7 +342,7 @@ type BasicDevice struct {
 // a device will consume from a capacity pool.
 type DeviceCapacityConsumption struct {
 	// capacityPool defines the capacity pool from which the
-	// capacities defined (either directly or through a mixin)
+	// capacities defined
 	// will be consumed from.
 	//
 	// +required

@@ -299,7 +299,7 @@ type BasicDevice struct {
 	// is 32. This is the same as the maximum number of capacity
 	// pools allowed in a ResourceSlice.
 	//
-	// +required
+	// +optional
 	// +listType=atomic
 	ConsumesCapacity []DeviceCapacityConsumption `json:"consumesCapacity,omitempty" protobuf:"bytes,3,rep,name=consumesCapacity"`
 
@@ -337,7 +337,7 @@ type BasicDevice struct {
 // a device will consume from a capacity pool.
 type DeviceCapacityConsumption struct {
 	// capacityPool defines the capacity pool from which the
-	// capacities defined (either directly or through a mixin)
+	// capacities defined
 	// will be consumed from.
 	//
 	// +required
