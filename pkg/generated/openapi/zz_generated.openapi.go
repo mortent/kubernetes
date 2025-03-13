@@ -47022,7 +47022,6 @@ func schema_k8sio_api_resource_v1alpha3_BasicDevice(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"consumesCapacity"},
 			},
 		},
 		Dependencies: []string{
@@ -47296,7 +47295,7 @@ func schema_k8sio_api_resource_v1alpha3_DeviceCapacityConsumption(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"capacityPool": {
 						SchemaProps: spec.SchemaProps{
-							Description: "capacityPool defines the capacity pool from which the capacities defined (either directly or through a mixin) will be consumed from.",
+							Description: "capacityPool defines the capacity pool from which the capacities defined will be consumed from.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -48742,7 +48741,6 @@ func schema_k8sio_api_resource_v1beta1_BasicDevice(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"consumesCapacity"},
 			},
 		},
 		Dependencies: []string{
@@ -49016,7 +49014,7 @@ func schema_k8sio_api_resource_v1beta1_DeviceCapacityConsumption(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"capacityPool": {
 						SchemaProps: spec.SchemaProps{
-							Description: "capacityPool defines the capacity pool from which the capacities defined (either directly or through a mixin) will be consumed from.",
+							Description: "capacityPool defines the capacity pool from which the capacities defined will be consumed from.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

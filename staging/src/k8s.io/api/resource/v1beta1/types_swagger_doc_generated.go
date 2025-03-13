@@ -137,7 +137,7 @@ func (DeviceCapacity) SwaggerDoc() map[string]string {
 
 var map_DeviceCapacityConsumption = map[string]string{
 	"":             "DeviceCapacityConsumption defines a set of capacities that a device will consume from a capacity pool.",
-	"capacityPool": "capacityPool defines the capacity pool from which the capacities defined (either directly or through a mixin) will be consumed from.",
+	"capacityPool": "capacityPool defines the capacity pool from which the capacities defined will be consumed from.",
 	"capacity":     "capacity defines the capacity that will be consumed by the device.\n\nThe maximum number of capacities is 32.",
 }
 

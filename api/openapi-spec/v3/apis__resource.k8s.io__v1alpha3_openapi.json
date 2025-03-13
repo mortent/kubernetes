@@ -219,9 +219,6 @@
             "description": "NodeSelector defines the nodes where the device is available.\n\nMust use exactly one term.\n\nMust only be set if Spec.PerDeviceNodeSelection is set. At most one of NodeName, NodeSelector and AllNodes can be set."
           }
         },
-        "required": [
-          "consumesCapacity"
-        ],
         "type": "object"
       },
       "io.k8s.api.resource.v1alpha3.CELDeviceSelector": {
@@ -407,7 +404,7 @@
           },
           "capacityPool": {
             "default": "",
-            "description": "capacityPool defines the capacity pool from which the capacities defined (either directly or through a mixin) will be consumed from.",
+            "description": "capacityPool defines the capacity pool from which the capacities defined will be consumed from.",
             "type": "string"
           }
         },
