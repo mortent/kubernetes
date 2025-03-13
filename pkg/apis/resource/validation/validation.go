@@ -579,13 +579,13 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 		allErrs = append(allErrs, apimachineryvalidation.ValidateImmutableField(spec.NodeName, oldSpec.NodeName, fldPath.Child("nodeName"))...)
 	}
 
-	numNodeSelectionFields := 0
+	setFields := make([]string, 0, 4)
 	if spec.NodeName != "" {
-		numNodeSelectionFields++
+		setFields = append(setFields, "`nodeName`")
 		allErrs = append(allErrs, validateNodeName(spec.NodeName, fldPath.Child("nodeName"))...)
 	}
 	if spec.NodeSelector != nil {
-		numNodeSelectionFields++
+		setFields = append(setFields, "`nodeSelector`")
 		allErrs = append(allErrs, corevalidation.ValidateNodeSelector(spec.NodeSelector, false, fldPath.Child("nodeSelector"))...)
 		if len(spec.NodeSelector.NodeSelectorTerms) != 1 {
 			// This additional constraint simplifies merging of different selectors
@@ -594,18 +594,17 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 		}
 	}
 	if spec.AllNodes {
-		numNodeSelectionFields++
+		setFields = append(setFields, "`allNodes`")
 	}
-
 	if spec.PerDeviceNodeSelection {
-		numNodeSelectionFields++
+		setFields = append(setFields, "`perDeviceNodeSelection`")
 	}
-	switch numNodeSelectionFields {
+	switch len(setFields) {
 	case 0:
 		allErrs = append(allErrs, field.Required(fldPath, "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required"))
 	case 1:
 	default:
-		allErrs = append(allErrs, field.Invalid(fldPath, nil,
+		allErrs = append(allErrs, field.Invalid(fldPath, fmt.Sprintf("{%s}", strings.Join(setFields, ", ")),
 			"exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required, but multiple fields are set"))
 	}
 
