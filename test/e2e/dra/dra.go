@@ -29,6 +29,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 
@@ -63,20 +64,20 @@ const (
 var adminAccessPolicyYAML string
 
 // networkResources can be passed to NewDriver directly.
-func networkResources() Resources {
-	return Resources{}
+func networkResources(nodes *Nodes) Resources {
+	return Resources{
+		NodeLocal:      false,
+		MaxAllocations: 0,
+	}
 }
 
 // perNode returns a function which can be passed to NewDriver. The nodes
 // parameter has be instantiated, but not initialized yet, so the returned
 // function has to capture it and use it when being called.
-func perNode(maxAllocations int, nodes *Nodes) func() Resources {
-	return func() Resources {
-		return Resources{
-			NodeLocal:      true,
-			MaxAllocations: maxAllocations,
-			Nodes:          nodes.NodeNames,
-		}
+func perNode(maxAllocations int, nodes *Nodes) Resources {
+	return Resources{
+		NodeLocal:      true,
+		MaxAllocations: maxAllocations,
 	}
 }
 
@@ -89,7 +90,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 
 	ginkgo.Context("kubelet", func() {
 		nodes := NewNodes(f, 1, 1)
-		driver := NewDriver(f, nodes, networkResources)
+		driver := NewDriver(f, nodes, networkResources(nodes), basicDriverResourcesGenerator())
 		b := newBuilder(f, driver)
 
 		ginkgo.It("registers plugin", func() {
@@ -478,11 +479,8 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 		nodes := NewNodes(f, 1, 1)
 		maxAllocations := 1
 		numPods := 10
-		generateResources := func() Resources {
-			resources := perNode(maxAllocations, nodes)()
-			return resources
-		}
-		driver := NewDriver(f, nodes, generateResources) // All tests get their own driver instance.
+		resources := perNode(maxAllocations, nodes)
+		driver := NewDriver(f, nodes, resources, basicDriverResourcesGenerator()) // All tests get their own driver instance.
 		b := newBuilder(f, driver)
 		// We have to set the parameters *before* creating the class.
 		b.classParameters = `{"x":"y"}`
@@ -648,7 +646,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 					},
 				},
 			}
-			driver := NewDriver(f, nodes, perNode(-1, nodes), devicesPerNode...)
+			driver := NewDriver(f, nodes, perNode(-1, nodes), basicDriverResourcesGenerator(devicesPerNode...))
 			b := newBuilder(f, driver)
 
 			ginkgo.It("keeps pod pending because of CEL runtime errors", func(ctx context.Context) {
@@ -710,7 +708,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 		})
 
 		ginkgo.Context("with node-local resources", func() {
-			driver := NewDriver(f, nodes, perNode(1, nodes))
+			driver := NewDriver(f, nodes, perNode(1, nodes), basicDriverResourcesGenerator())
 			b := newBuilder(f, driver)
 
 			ginkgo.It("uses all resources", func(ctx context.Context) {
@@ -752,7 +750,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 		})
 
 		ginkgo.Context("with network-attached resources", func() {
-			driver := NewDriver(f, nodes, networkResources)
+			driver := NewDriver(f, nodes, networkResources(nodes), basicDriverResourcesGenerator())
 			b := newBuilder(f, driver)
 
 			f.It("supports sharing a claim sequentially", f.WithSlow(), func(ctx context.Context) {
@@ -869,7 +867,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 		driver1Params, driver1Env := `{"driver":"1"}`, []string{"admin_driver", "1"}
 		driver2Params, driver2Env := `{"driver":"2"}`, []string{"admin_driver", "2"}
 
-		driver1 := NewDriver(f, nodes, perNode(-1, nodes), []map[string]map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+		driver1 := NewDriver(f, nodes, perNode(-1, nodes), basicDriverResourcesGenerator([]map[string]map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 			{
 				"device-1-1": {
 					"dra.example.com/version":  {StringValue: ptr.To("1.0.0")},
@@ -880,19 +878,19 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 					"dra.example.com/pcieRoot": {StringValue: ptr.To("foo")},
 				},
 			},
-		}...)
+		}...))
 		driver1.NameSuffix = "-1"
 		b1 := newBuilder(f, driver1)
 		b1.classParameters = driver1Params
 
-		driver2 := NewDriver(f, nodes, perNode(-1, nodes), []map[string]map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+		driver2 := NewDriver(f, nodes, perNode(-1, nodes), basicDriverResourcesGenerator([]map[string]map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 			{
 				"device-2-1": {
 					"dra.example.com/version":  {StringValue: ptr.To("1.0.0")},
 					"dra.example.com/pcieRoot": {StringValue: ptr.To("foo")},
 				},
 			},
-		}...)
+		}...))
 		driver2.NameSuffix = "-2"
 		b2 := newBuilder(f, driver2)
 		b2.classParameters = driver2Params
@@ -1376,7 +1374,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 
 	ginkgo.Context("cluster", func() {
 		nodes := NewNodes(f, 1, 1)
-		driver := NewDriver(f, nodes, networkResources)
+		driver := NewDriver(f, nodes, networkResources(nodes), basicDriverResourcesGenerator())
 		b := newBuilder(f, driver)
 
 		f.It("support validating admission policy for admin access", feature.DRAAdminAccess, framework.WithFeatureGate(features.DRAAdminAccess), framework.WithFeatureGate(features.DynamicResourceAllocation), func(ctx context.Context) {
@@ -1537,7 +1535,7 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 
 	ginkgo.Context("cluster", func() {
 		nodes := NewNodes(f, 1, 4)
-		driver := NewDriver(f, nodes, perNode(1, nodes))
+		driver := NewDriver(f, nodes, perNode(1, nodes), basicDriverResourcesGenerator())
 
 		f.It("must apply per-node permission checks", func(ctx context.Context) {
 			// All of the operations use the client set of a kubelet plugin for
@@ -1739,12 +1737,12 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 
 	multipleDrivers := func(nodeV1alpha4, nodeV1beta1 bool) {
 		nodes := NewNodes(f, 1, 4)
-		driver1 := NewDriver(f, nodes, perNode(2, nodes))
+		driver1 := NewDriver(f, nodes, perNode(2, nodes), basicDriverResourcesGenerator())
 		driver1.NodeV1alpha4 = nodeV1alpha4
 		driver1.NodeV1beta1 = nodeV1beta1
 		b1 := newBuilder(f, driver1)
 
-		driver2 := NewDriver(f, nodes, perNode(2, nodes))
+		driver2 := NewDriver(f, nodes, perNode(2, nodes), basicDriverResourcesGenerator())
 		driver2.NodeV1alpha4 = nodeV1alpha4
 		driver2.NodeV1beta1 = nodeV1beta1
 		driver2.NameSuffix = "-other"
@@ -1794,7 +1792,8 @@ var _ = framework.SIGDescribe("node")("DRA", feature.DynamicResourceAllocation, 
 		framework.ExpectNoError(e2epod.WaitForPodNameUnschedulableInNamespace(ctx, f.ClientSet, pod.Name, pod.Namespace))
 
 		// Set up driver, which makes devices available.
-		driver.Run(nodes, perNode(1, nodes))
+		resources := perNode(1, nodes)
+		driver.Run(nodes, basicDriverResourcesGenerator()(nodes, resources))
 
 		// Now it should run.
 		b.testPod(ctx, f, pod)
@@ -2161,4 +2160,93 @@ func (b *builder) listTestPods(ctx context.Context) ([]v1.Pod, error) {
 		testPods = append(testPods, pod)
 	}
 	return testPods, nil
+}
+
+// basicDriverResourceGenerator generates a set of devices for testing. If devicesPerNode
+// is provided, it is used to generate the devices. If not, basic devices will be generated
+// based on resources.MaxAllocations.
+// TODO: This function should be simplified.
+func basicDriverResourcesGenerator(devicesPerNode ...map[string]map[resourceapi.QualifiedName]resourceapi.DeviceAttribute) driverResourcesGenerator {
+	return func(nodes *Nodes, resources Resources) map[string]resourceslice.DriverResources {
+		driverResources := make(map[string]resourceslice.DriverResources)
+		if !resources.NodeLocal {
+			maxAllocations := resources.MaxAllocations
+			if maxAllocations <= 0 {
+				maxAllocations = 10
+			}
+			devices := make([]resourceapi.Device, 0)
+			for i := 0; i < maxAllocations; i++ {
+				devices = append(devices, resourceapi.Device{
+					Name:  fmt.Sprintf("device-%d", i),
+					Basic: &resourceapi.BasicDevice{},
+				})
+			}
+			driverResources[networkPool] = resourceslice.DriverResources{
+				Pools: map[string]resourceslice.Pool{
+					"network": {
+						Slices: []resourceslice.Slice{{
+							Devices: devices,
+						}},
+						NodeSelector: &v1.NodeSelector{
+							NodeSelectorTerms: []v1.NodeSelectorTerm{{
+								// MatchExpressions allow multiple values,
+								// MatchFields don't.
+								MatchExpressions: []v1.NodeSelectorRequirement{{
+									Key:      "kubernetes.io/hostname",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   nodes.NodeNames,
+								}},
+							}},
+						},
+						Generation: 1,
+					},
+				},
+			}
+			return driverResources
+		}
+		for i, nodename := range nodes.NodeNames {
+			if i < len(devicesPerNode) {
+				devices := make([]resourceapi.Device, 0)
+				for deviceName, attributes := range devicesPerNode[i] {
+					devices = append(devices, resourceapi.Device{
+						Name:  deviceName,
+						Basic: &resourceapi.BasicDevice{Attributes: attributes},
+					})
+				}
+				driverResources[nodename] = resourceslice.DriverResources{
+					Pools: map[string]resourceslice.Pool{
+						nodename: {
+							Slices: []resourceslice.Slice{{
+								Devices: devices,
+							}},
+						},
+					},
+				}
+			} else if resources.MaxAllocations >= 0 {
+				devices := make([]resourceapi.Device, resources.MaxAllocations)
+				for i := 0; i < resources.MaxAllocations; i++ {
+					devices[i] = resourceapi.Device{
+						Name:  fmt.Sprintf("device-%02d", i),
+						Basic: &resourceapi.BasicDevice{},
+					}
+				}
+				driverResources[nodename] = resourceslice.DriverResources{
+					Pools: map[string]resourceslice.Pool{
+						nodename: {
+							Slices: []resourceslice.Slice{{
+								Devices: devices,
+							}},
+						},
+					},
+				}
+			}
+		}
+		return driverResources
+	}
+}
+
+func logResourceSlices(ctx context.Context, f *framework.Framework) {
+	rsList, err := f.ClientSet.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{})
+	framework.ExpectNoError(err)
+	framework.Logf("resourceSlices:\n%s", format.Object(rsList, 1))
 }
