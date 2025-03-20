@@ -42,15 +42,14 @@ var slice = &resource.ResourceSlice{
 			ResourceSliceCount: 1,
 		},
 		Devices: []resource.Device{{
-			Name:  "device-0",
-			Basic: &resource.BasicDevice{},
+			Name: "device-0",
 		}},
 	},
 }
 
 var sliceWithDeviceTaints = func() *resource.ResourceSlice {
 	slice := slice.DeepCopy()
-	slice.Spec.Devices[0].Basic.Taints = []resource.DeviceTaint{{
+	slice.Spec.Devices[0].Taints = []resource.DeviceTaint{{
 		Key:    "example.com/tainted",
 		Effect: resource.DeviceTaintEffectNoSchedule,
 	}}
@@ -85,33 +84,31 @@ var sliceWithPartitionableDevices = &resource.ResourceSlice{
 		Devices: []resource.Device{
 			{
 				Name: "device",
-				Basic: &resource.BasicDevice{
-					ConsumesCounter: []resource.DeviceCounterConsumption{
-						{
-							SharedCounter: "pool-1",
-							Counters: map[string]resource.Counter{
-								"memory": {
-									Value: k8sresource.MustParse("40Gi"),
-								},
+				ConsumesCounter: []resource.DeviceCounterConsumption{
+					{
+						SharedCounter: "pool-1",
+						Counters: map[string]resource.Counter{
+							"memory": {
+								Value: k8sresource.MustParse("40Gi"),
 							},
 						},
 					},
-					NodeName: func() *string {
-						r := "valid-node-name"
-						return &r
-					}(),
-					Attributes: map[resource.QualifiedName]resource.DeviceAttribute{
-						resource.QualifiedName("version"): {
-							StringValue: func() *string {
-								v := "v1"
-								return &v
-							}(),
-						},
+				},
+				NodeName: func() *string {
+					r := "valid-node-name"
+					return &r
+				}(),
+				Attributes: map[resource.QualifiedName]resource.DeviceAttribute{
+					resource.QualifiedName("version"): {
+						StringValue: func() *string {
+							v := "v1"
+							return &v
+						}(),
 					},
-					Capacity: map[resource.QualifiedName]resource.DeviceCapacity{
-						resource.QualifiedName("memory"): {
-							Value: k8sresource.MustParse("40Gi"),
-						},
+				},
+				Capacity: map[resource.QualifiedName]resource.DeviceCapacity{
+					resource.QualifiedName("memory"): {
+						Value: k8sresource.MustParse("40Gi"),
 					},
 				},
 			},
@@ -188,10 +185,10 @@ func TestResourceSliceStrategyCreate(t *testing.T) {
 				obj.Spec.SharedCounters = nil
 				obj.Spec.PerDeviceNodeSelection = nil
 				obj.Spec.NodeName = "valid-node-name"
-				obj.Spec.Devices[0].Basic.NodeName = nil
-				obj.Spec.Devices[0].Basic.NodeSelector = nil
-				obj.Spec.Devices[0].Basic.AllNodes = nil
-				obj.Spec.Devices[0].Basic.ConsumesCounter = nil
+				obj.Spec.Devices[0].NodeName = nil
+				obj.Spec.Devices[0].NodeSelector = nil
+				obj.Spec.Devices[0].AllNodes = nil
+				obj.Spec.Devices[0].ConsumesCounter = nil
 				return obj
 			}(),
 		},
@@ -348,8 +345,8 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj.Spec.SharedCounters = nil
 				obj.Spec.PerDeviceNodeSelection = nil
 				obj.Spec.NodeName = "valid-node-name"
-				obj.Spec.Devices[0].Basic.ConsumesCounter = nil
-				obj.Spec.Devices[0].Basic.NodeName = nil
+				obj.Spec.Devices[0].ConsumesCounter = nil
+				obj.Spec.Devices[0].NodeName = nil
 				return obj
 			}(),
 		},
@@ -370,7 +367,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj.ResourceVersion = "4"
 				obj.Spec.NodeName = "valid-node-name"
 				obj.Spec.PerDeviceNodeSelection = nil
-				obj.Spec.Devices[0].Basic.NodeName = nil
+				obj.Spec.Devices[0].NodeName = nil
 				return obj
 			}(),
 			partitionableDevices: true,
@@ -380,7 +377,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj.Generation = 1
 				obj.Spec.NodeName = "valid-node-name"
 				obj.Spec.PerDeviceNodeSelection = nil
-				obj.Spec.Devices[0].Basic.NodeName = nil
+				obj.Spec.Devices[0].NodeName = nil
 				return obj
 			}(),
 		},

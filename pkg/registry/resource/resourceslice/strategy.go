@@ -165,10 +165,8 @@ func dropDisabledDRADeviceTaintsFields(newSlice, oldSlice *resource.ResourceSlic
 		return
 	}
 
-	for _, device := range newSlice.Spec.Devices {
-		if device.Basic != nil {
-			device.Basic.Taints = nil
-		}
+	for i := range newSlice.Spec.Devices {
+		newSlice.Spec.Devices[i].Taints = nil
 	}
 }
 
@@ -178,7 +176,7 @@ func draDeviceTaintsFeatureInUse(slice *resource.ResourceSlice) bool {
 	}
 
 	for _, device := range slice.Spec.Devices {
-		if device.Basic != nil && len(device.Basic.Taints) > 0 {
+		if len(device.Taints) > 0 {
 			return true
 		}
 	}
@@ -192,14 +190,11 @@ func dropDisabledDRAPartitionableDevicesFields(newSlice, oldSlice *resource.Reso
 
 	newSlice.Spec.SharedCounters = nil
 	newSlice.Spec.PerDeviceNodeSelection = nil
-	for _, device := range newSlice.Spec.Devices {
-		if device.Basic != nil {
-			device.Basic.ConsumesCounter = nil
-			device.Basic.NodeName = nil
-			device.Basic.NodeSelector = nil
-			device.Basic.AllNodes = nil
-		}
-
+	for i := range newSlice.Spec.Devices {
+		newSlice.Spec.Devices[i].ConsumesCounter = nil
+		newSlice.Spec.Devices[i].NodeName = nil
+		newSlice.Spec.Devices[i].NodeSelector = nil
+		newSlice.Spec.Devices[i].AllNodes = nil
 	}
 }
 
@@ -214,15 +209,12 @@ func draPartitionableDevicesFeatureInUse(slice *resource.ResourceSlice) bool {
 	}
 
 	for _, device := range spec.Devices {
-		if device.Basic != nil {
-			if len(device.Basic.ConsumesCounter) > 0 {
-				return true
-			}
-			if device.Basic.NodeName != nil || device.Basic.NodeSelector != nil || device.Basic.AllNodes != nil {
-				return true
-			}
+		if len(device.ConsumesCounter) > 0 {
+			return true
 		}
-
+		if device.NodeName != nil || device.NodeSelector != nil || device.AllNodes != nil {
+			return true
+		}
 	}
 	return false
 }
