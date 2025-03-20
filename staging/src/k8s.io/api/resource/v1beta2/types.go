@@ -114,7 +114,7 @@ type ResourceSliceSpec struct {
 	//
 	// +optional
 	// +oneOf=NodeSelection
-	NodeName string `json:"nodeName,omitempty" protobuf:"bytes,3,opt,name=nodeName"`
+	NodeName *string `json:"nodeName,omitempty" protobuf:"bytes,3,opt,name=nodeName"`
 
 	// NodeSelector defines which nodes have access to the resources in the pool,
 	// when that pool is not limited to a single node.
@@ -133,7 +133,7 @@ type ResourceSliceSpec struct {
 	//
 	// +optional
 	// +oneOf=NodeSelection
-	AllNodes bool `json:"allNodes,omitempty" protobuf:"bytes,5,opt,name=allNodes"`
+	AllNodes *bool `json:"allNodes,omitempty" protobuf:"bytes,5,opt,name=allNodes"`
 
 	// Devices lists some or all of the devices in this pool.
 	//

@@ -95,5 +95,13 @@ var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 			// might be valid JSON which changes during re-encoding.
 			r.Data = &runtime.RawExtension{Raw: []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`)}
 		},
+		func(r *resource.ResourceSliceSpec, c randfill.Continue) {
+			c.FillNoCustom(r)
+			// Setting AllNodes to false is not allowed. It must be
+			// either true or nil.
+			if r.AllNodes != nil && !*r.AllNodes {
+				r.AllNodes = nil
+			}
+		},
 	}
 }

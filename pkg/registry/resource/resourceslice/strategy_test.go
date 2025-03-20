@@ -28,6 +28,7 @@ import (
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/kubernetes/pkg/apis/resource"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/utils/ptr"
 )
 
 var slice = &resource.ResourceSlice{
@@ -35,7 +36,7 @@ var slice = &resource.ResourceSlice{
 		Name: "valid-resource-slice",
 	},
 	Spec: resource.ResourceSliceSpec{
-		NodeName: "valid-node-name",
+		NodeName: ptr.To("valid-node-name"),
 		Driver:   "testdriver.example.com",
 		Pool: resource.ResourcePool{
 			Name:               "valid-pool-name",
@@ -175,7 +176,7 @@ func TestResourceSliceStrategyCreate(t *testing.T) {
 					r := false
 					return &r
 				}()
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				return obj
 			}(),
 			partitionableDevices: false,
@@ -184,7 +185,7 @@ func TestResourceSliceStrategyCreate(t *testing.T) {
 				obj.ObjectMeta.Generation = 1
 				obj.Spec.SharedCounters = nil
 				obj.Spec.PerDeviceNodeSelection = nil
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				obj.Spec.Devices[0].NodeName = nil
 				obj.Spec.Devices[0].NodeSelector = nil
 				obj.Spec.Devices[0].AllNodes = nil
@@ -334,7 +335,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 					r := false
 					return &r
 				}()
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				return obj
 			}(),
 			partitionableDevices: false,
@@ -344,7 +345,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj.Generation = 1
 				obj.Spec.SharedCounters = nil
 				obj.Spec.PerDeviceNodeSelection = nil
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				obj.Spec.Devices[0].ConsumesCounter = nil
 				obj.Spec.Devices[0].NodeName = nil
 				return obj
@@ -365,7 +366,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 			newObj: func() *resource.ResourceSlice {
 				obj := sliceWithPartitionableDevices.DeepCopy()
 				obj.ResourceVersion = "4"
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				obj.Spec.PerDeviceNodeSelection = nil
 				obj.Spec.Devices[0].NodeName = nil
 				return obj
@@ -375,7 +376,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj := sliceWithPartitionableDevices.DeepCopy()
 				obj.ResourceVersion = "4"
 				obj.Generation = 1
-				obj.Spec.NodeName = "valid-node-name"
+				obj.Spec.NodeName = ptr.To("valid-node-name")
 				obj.Spec.PerDeviceNodeSelection = nil
 				obj.Spec.Devices[0].NodeName = nil
 				return obj

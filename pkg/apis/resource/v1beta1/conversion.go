@@ -139,6 +139,86 @@ func Convert_resource_DeviceRequest_To_v1beta1_DeviceRequest(in *resource.Device
 	return nil
 }
 
+func Convert_v1beta1_ResourceSliceSpec_To_resource_ResourceSliceSpec(in *resourcev1beta1.ResourceSliceSpec, out *resource.ResourceSliceSpec, s conversion.Scope) error {
+	out.Driver = in.Driver
+	var pool resource.ResourcePool
+	if err := Convert_v1beta1_ResourcePool_To_resource_ResourcePool(&in.Pool, &pool, s); err != nil {
+		return err
+	}
+	out.Pool = pool
+	if in.NodeName == "" {
+		out.NodeName = nil
+	} else {
+		out.NodeName = &in.NodeName
+	}
+	out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(in.NodeSelector))
+	if !in.AllNodes {
+		out.AllNodes = nil
+	} else {
+		out.AllNodes = &in.AllNodes
+	}
+	var devices []resource.Device
+	for _, e := range in.Devices {
+		var device resource.Device
+		if err := Convert_v1beta1_Device_To_resource_Device(&e, &device, s); err != nil {
+			return err
+		}
+		devices = append(devices, device)
+	}
+	out.Devices = devices
+	out.PerDeviceNodeSelection = in.PerDeviceNodeSelection
+	var sharedCounters []resource.CounterSet
+	for _, e := range in.SharedCounters {
+		var counterSet resource.CounterSet
+		if err := Convert_v1beta1_CounterSet_To_resource_CounterSet(&e, &counterSet, s); err != nil {
+			return err
+		}
+		sharedCounters = append(sharedCounters, counterSet)
+	}
+	out.SharedCounters = sharedCounters
+	return nil
+}
+
+func Convert_resource_ResourceSliceSpec_To_v1beta1_ResourceSliceSpec(in *resource.ResourceSliceSpec, out *resourcev1beta1.ResourceSliceSpec, s conversion.Scope) error {
+	out.Driver = in.Driver
+	var pool resourcev1beta1.ResourcePool
+	if err := Convert_resource_ResourcePool_To_v1beta1_ResourcePool(&in.Pool, &pool, s); err != nil {
+		return err
+	}
+	out.Pool = pool
+	if in.NodeName == nil {
+		out.NodeName = ""
+	} else {
+		out.NodeName = *in.NodeName
+	}
+	out.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
+	if in.AllNodes == nil {
+		out.AllNodes = false
+	} else {
+		out.AllNodes = *in.AllNodes
+	}
+	var devices []resourcev1beta1.Device
+	for _, e := range in.Devices {
+		var device resourcev1beta1.Device
+		if err := Convert_resource_Device_To_v1beta1_Device(&e, &device, s); err != nil {
+			return err
+		}
+		devices = append(devices, device)
+	}
+	out.Devices = devices
+	out.PerDeviceNodeSelection = in.PerDeviceNodeSelection
+	var sharedCounters []resourcev1beta1.CounterSet
+	for _, e := range in.SharedCounters {
+		var counterSet resourcev1beta1.CounterSet
+		if err := Convert_resource_CounterSet_To_v1beta1_CounterSet(&e, &counterSet, s); err != nil {
+			return err
+		}
+		sharedCounters = append(sharedCounters, counterSet)
+	}
+	out.SharedCounters = sharedCounters
+	return nil
+}
+
 func Convert_v1beta1_Device_To_resource_Device(in *resourcev1beta1.Device, out *resource.Device, s conversion.Scope) error {
 	out.Name = in.Name
 	if in.Basic != nil {

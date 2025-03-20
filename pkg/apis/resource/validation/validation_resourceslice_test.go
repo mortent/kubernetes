@@ -56,7 +56,7 @@ func testResourceSlice(name, nodeName, driverName string, numDevices int) *resou
 			Name: name,
 		},
 		Spec: resourceapi.ResourceSliceSpec{
-			NodeName: nodeName,
+			NodeName: &nodeName,
 			Driver:   driverName,
 			Pool: resourceapi.ResourcePool{
 				Name:               nodeName,
@@ -271,7 +271,7 @@ func TestValidateResourceSlice(t *testing.T) {
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				slice.Spec.NodeSelector = &core.NodeSelector{}
 				return slice
 			}(),
@@ -280,7 +280,7 @@ func TestValidateResourceSlice(t *testing.T) {
 			wantFailures: field.ErrorList{field.Invalid(field.NewPath("spec"), "{`nodeName`, `nodeSelector`}", "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required, but multiple fields are set")},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = "worker"
+				slice.Spec.NodeName = ptr.To("worker")
 				slice.Spec.NodeSelector = &core.NodeSelector{
 					NodeSelectorTerms: []core.NodeSelectorTerm{{MatchFields: []core.NodeSelectorRequirement{{Key: "metadata.name", Operator: core.NodeSelectorOpIn, Values: []string{"worker"}}}}},
 				}
@@ -291,8 +291,8 @@ func TestValidateResourceSlice(t *testing.T) {
 			wantFailures: field.ErrorList{field.Invalid(field.NewPath("spec"), "{`nodeName`, `allNodes`}", "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required, but multiple fields are set")},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = "worker"
-				slice.Spec.AllNodes = true
+				slice.Spec.NodeName = ptr.To("worker")
+				slice.Spec.AllNodes = ptr.To(true)
 				return slice
 			}(),
 		},
@@ -300,7 +300,7 @@ func TestValidateResourceSlice(t *testing.T) {
 			wantFailures: field.ErrorList{field.Required(field.NewPath("spec"), "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required")},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				return slice
 			}(),
 		},
@@ -436,7 +436,7 @@ func TestValidateResourceSlice(t *testing.T) {
 			wantFailures: field.ErrorList{field.Invalid(field.NewPath("spec", "nodeSelector", "nodeSelectorTerms").Index(0).Child("matchExpressions").Index(0).Child("values").Index(0), "-1", "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')")},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, goodName, 3)
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				slice.Spec.NodeSelector = &core.NodeSelector{
 					NodeSelectorTerms: []core.NodeSelectorTerm{{
 						MatchExpressions: []core.NodeSelectorRequirement{{
@@ -497,7 +497,7 @@ func TestValidateResourceSlice(t *testing.T) {
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = "worker"
+				slice.Spec.NodeName = ptr.To("worker")
 				slice.Spec.PerDeviceNodeSelection = func() *bool {
 					r := true
 					return &r
@@ -511,9 +511,37 @@ func TestValidateResourceSlice(t *testing.T) {
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.NodeName = "worker"
+				slice.Spec.NodeName = ptr.To("worker")
 				slice.Spec.PerDeviceNodeSelection = func() *bool {
 					r := false
+					return &r
+				}()
+				return slice
+			}(),
+		},
+		"invalid-false-AllNodes": {
+			wantFailures: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "allNodes"), false, "must be either unset or set to true"),
+			},
+			slice: func() *resourceapi.ResourceSlice {
+				slice := testResourceSlice(goodName, goodName, driverName, 1)
+				slice.Spec.NodeName = ptr.To("worker")
+				slice.Spec.AllNodes = func() *bool {
+					r := false
+					return &r
+				}()
+				return slice
+			}(),
+		},
+		"invalid-empty-NodeName": {
+			wantFailures: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "nodeName"), "", "must be either unset or set to a non-empty string"),
+			},
+			slice: func() *resourceapi.ResourceSlice {
+				slice := testResourceSlice(goodName, goodName, driverName, 1)
+				slice.Spec.NodeName = ptr.To("")
+				slice.Spec.AllNodes = func() *bool {
+					r := true
 					return &r
 				}()
 				return slice
@@ -531,7 +559,7 @@ func TestValidateResourceSlice(t *testing.T) {
 					r := true
 					return &r
 				}()
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				slice.Spec.Devices[0].NodeName = func() *string {
 					r := ""
 					return &r
@@ -553,7 +581,7 @@ func TestValidateResourceSlice(t *testing.T) {
 					r := true
 					return &r
 				}()
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				slice.Spec.Devices[0].NodeName = func() *string {
 					r := "worker"
 					return &r
@@ -749,10 +777,10 @@ func TestValidateResourceSliceUpdate(t *testing.T) {
 			wantFailures: field.ErrorList{field.Invalid(field.NewPath("metadata", "name"), name+"-update", "field is immutable")},
 		},
 		"invalid-update-nodename": {
-			wantFailures:     field.ErrorList{field.Invalid(field.NewPath("spec", "nodeName"), name+"-updated", "field is immutable")},
+			wantFailures:     field.ErrorList{field.Invalid(field.NewPath("spec", "nodeName"), ptr.To(name+"-updated"), "field is immutable")},
 			oldResourceSlice: validResourceSlice,
 			update: func(slice *resourceapi.ResourceSlice) *resourceapi.ResourceSlice {
-				slice.Spec.NodeName += "-updated"
+				slice.Spec.NodeName = ptr.To(*slice.Spec.NodeName + "-updated")
 				return slice
 			},
 		},
@@ -776,7 +804,7 @@ func TestValidateResourceSliceUpdate(t *testing.T) {
 			wantFailures: field.ErrorList{field.Invalid(field.NewPath("spec", "nodeSelector", "nodeSelectorTerms").Index(0).Child("matchExpressions").Index(0).Child("values").Index(0), "-1", "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')")},
 			oldResourceSlice: func() *resourceapi.ResourceSlice {
 				slice := validResourceSlice.DeepCopy()
-				slice.Spec.NodeName = ""
+				slice.Spec.NodeName = nil
 				slice.Spec.NodeSelector = &core.NodeSelector{
 					NodeSelectorTerms: []core.NodeSelectorTerm{{
 						MatchExpressions: []core.NodeSelectorRequirement{{

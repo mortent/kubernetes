@@ -6514,7 +6514,7 @@ func TestPrintResourceSlice(t *testing.T) {
 					CreationTimestamp: metav1.Time{Time: time.Now().Add(-3e11)},
 				},
 				Spec: resourceapis.ResourceSliceSpec{
-					NodeName: "nodeName",
+					NodeName: ptr.To("nodeName"),
 					Driver:   "driverName",
 					Pool: resourceapis.ResourcePool{
 						Name:               "poolName",
@@ -6532,7 +6532,7 @@ func TestPrintResourceSlice(t *testing.T) {
 					CreationTimestamp: metav1.Time{},
 				},
 				Spec: resourceapis.ResourceSliceSpec{
-					NodeName: "nodeName",
+					NodeName: ptr.To("nodeName"),
 					Driver:   "driverName",
 					Pool: resourceapis.ResourcePool{
 						Name:               "poolName",

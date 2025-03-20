@@ -102,7 +102,12 @@ var TriggerFunc = map[string]storage.IndexerFunc{
 }
 
 func nodeNameTriggerFunc(obj runtime.Object) string {
-	return obj.(*resource.ResourceSlice).Spec.NodeName
+	rs := obj.(*resource.ResourceSlice)
+	if rs.Spec.NodeName == nil {
+		return ""
+	} else {
+		return *rs.Spec.NodeName
+	}
 }
 
 // Indexers returns the indexers for ResourceSlice.
@@ -117,7 +122,10 @@ func nodeNameIndexFunc(obj interface{}) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("not a ResourceSlice")
 	}
-	return []string{slice.Spec.NodeName}, nil
+	if slice.Spec.NodeName == nil {
+		return []string{""}, nil
+	}
+	return []string{*slice.Spec.NodeName}, nil
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
@@ -147,7 +155,11 @@ func toSelectableFields(slice *resource.ResourceSlice) fields.Set {
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
 	fields := make(fields.Set, 3)
-	fields[resource.ResourceSliceSelectorNodeName] = slice.Spec.NodeName
+	if slice.Spec.NodeName == nil {
+		fields[resource.ResourceSliceSelectorNodeName] = ""
+	} else {
+		fields[resource.ResourceSliceSelectorNodeName] = *slice.Spec.NodeName
+	}
 	fields[resource.ResourceSliceSelectorDriver] = slice.Spec.Driver
 
 	// Adds one field.

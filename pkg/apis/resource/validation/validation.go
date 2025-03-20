@@ -589,9 +589,14 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 	}
 
 	setFields := make([]string, 0, 4)
-	if spec.NodeName != "" {
-		setFields = append(setFields, "`nodeName`")
-		allErrs = append(allErrs, validateNodeName(spec.NodeName, fldPath.Child("nodeName"))...)
+	if spec.NodeName != nil {
+		if *spec.NodeName != "" {
+			setFields = append(setFields, "`nodeName`")
+			allErrs = append(allErrs, validateNodeName(*spec.NodeName, fldPath.Child("nodeName"))...)
+		} else {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("nodeName"), *spec.NodeName,
+				"must be either unset or set to a non-empty string"))
+		}
 	}
 	if spec.NodeSelector != nil {
 		setFields = append(setFields, "`nodeSelector`")
@@ -602,9 +607,16 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("nodeSelector", "nodeSelectorTerms"), spec.NodeSelector.NodeSelectorTerms, "must have exactly one node selector term"))
 		}
 	}
-	if spec.AllNodes {
-		setFields = append(setFields, "`allNodes`")
+
+	if spec.AllNodes != nil {
+		if *spec.AllNodes {
+			setFields = append(setFields, "`allNodes`")
+		} else {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("allNodes"), *spec.AllNodes,
+				"must be either unset or set to true"))
+		}
 	}
+
 	if spec.PerDeviceNodeSelection != nil {
 		if *spec.PerDeviceNodeSelection {
 			setFields = append(setFields, "`perDeviceNodeSelection`")
@@ -612,8 +624,8 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("perDeviceNodeSelection"), *spec.PerDeviceNodeSelection,
 				"must be either unset or set to true"))
 		}
-
 	}
+
 	switch len(setFields) {
 	case 0:
 		allErrs = append(allErrs, field.Required(fldPath, "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required"))

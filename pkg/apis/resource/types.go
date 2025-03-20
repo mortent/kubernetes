@@ -111,7 +111,7 @@ type ResourceSliceSpec struct {
 	//
 	// +optional
 	// +oneOf=NodeSelection
-	NodeName string
+	NodeName *string
 
 	// NodeSelector defines which nodes have access to the resources in the pool,
 	// when that pool is not limited to a single node.
@@ -130,7 +130,7 @@ type ResourceSliceSpec struct {
 	//
 	// +optional
 	// +oneOf=NodeSelection
-	AllNodes bool
+	AllNodes *bool
 
 	// Devices lists some or all of the devices in this pool.
 	//
