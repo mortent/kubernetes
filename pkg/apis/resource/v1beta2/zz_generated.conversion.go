@@ -1383,9 +1383,9 @@ func autoConvert_v1beta2_ResourceSliceSpec_To_resource_ResourceSliceSpec(in *res
 	if err := Convert_v1beta2_ResourcePool_To_resource_ResourcePool(&in.Pool, &out.Pool, s); err != nil {
 		return err
 	}
-	out.NodeName = in.NodeName
+	out.NodeName = (*string)(unsafe.Pointer(in.NodeName))
 	out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(in.NodeSelector))
-	out.AllNodes = in.AllNodes
+	out.AllNodes = (*bool)(unsafe.Pointer(in.AllNodes))
 	out.Devices = *(*[]resource.Device)(unsafe.Pointer(&in.Devices))
 	out.PerDeviceNodeSelection = (*bool)(unsafe.Pointer(in.PerDeviceNodeSelection))
 	out.SharedCounters = *(*[]resource.CounterSet)(unsafe.Pointer(&in.SharedCounters))
@@ -1402,9 +1402,9 @@ func autoConvert_resource_ResourceSliceSpec_To_v1beta2_ResourceSliceSpec(in *res
 	if err := Convert_resource_ResourcePool_To_v1beta2_ResourcePool(&in.Pool, &out.Pool, s); err != nil {
 		return err
 	}
-	out.NodeName = in.NodeName
+	out.NodeName = (*string)(unsafe.Pointer(in.NodeName))
 	out.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
-	out.AllNodes = in.AllNodes
+	out.AllNodes = (*bool)(unsafe.Pointer(in.AllNodes))
 	out.Devices = *(*[]resourcev1beta2.Device)(unsafe.Pointer(&in.Devices))
 	out.PerDeviceNodeSelection = (*bool)(unsafe.Pointer(in.PerDeviceNodeSelection))
 	out.SharedCounters = *(*[]resourcev1beta2.CounterSet)(unsafe.Pointer(&in.SharedCounters))

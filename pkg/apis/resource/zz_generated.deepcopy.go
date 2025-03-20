@@ -1134,10 +1134,20 @@ func (in *ResourceSliceList) DeepCopyObject() runtime.Object {
 func (in *ResourceSliceSpec) DeepCopyInto(out *ResourceSliceSpec) {
 	*out = *in
 	out.Pool = in.Pool
+	if in.NodeName != nil {
+		in, out := &in.NodeName, &out.NodeName
+		*out = new(string)
+		**out = **in
+	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = new(core.NodeSelector)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.AllNodes != nil {
+		in, out := &in.AllNodes, &out.AllNodes
+		*out = new(bool)
+		**out = **in
 	}
 	if in.Devices != nil {
 		in, out := &in.Devices, &out.Devices
