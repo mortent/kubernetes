@@ -56,16 +56,9 @@ func Convert_resource_Quantity_To_resource_DeviceCapacity(in *resource.Quantity,
 }
 
 func Convert_v1alpha3_DeviceRequest_To_resource_DeviceRequest(in *resourcev1alpha3.DeviceRequest, out *resourceapi.DeviceRequest, s conversion.Scope) error {
-	out.Name = in.Name
-	for i := range in.FirstAvailable {
-		var deviceSubRequest resourceapi.DeviceSubRequest
-		err := Convert_v1alpha3_DeviceSubRequest_To_resource_DeviceSubRequest(&in.FirstAvailable[i], &deviceSubRequest, s)
-		if err != nil {
-			return err
-		}
-		out.FirstAvailable = append(out.FirstAvailable, deviceSubRequest)
+	if err := autoConvert_v1alpha3_DeviceRequest_To_resource_DeviceRequest(in, out, s); err != nil {
+		return err
 	}
-
 	// If any fields on the main request is set, we create a SpecificDeviceRequest
 	// and set the Exactly field. It might be invalid but that will be caught in validation.
 	if hasAnyMainRequestFieldsSet(in) {
@@ -110,16 +103,9 @@ func hasAnyMainRequestFieldsSet(deviceRequest *resourcev1alpha3.DeviceRequest) b
 }
 
 func Convert_resource_DeviceRequest_To_v1alpha3_DeviceRequest(in *resourceapi.DeviceRequest, out *resourcev1alpha3.DeviceRequest, s conversion.Scope) error {
-	out.Name = in.Name
-	for i := range in.FirstAvailable {
-		var deviceSubRequest resourcev1alpha3.DeviceSubRequest
-		err := Convert_resource_DeviceSubRequest_To_v1alpha3_DeviceSubRequest(&in.FirstAvailable[i], &deviceSubRequest, s)
-		if err != nil {
-			return err
-		}
-		out.FirstAvailable = append(out.FirstAvailable, deviceSubRequest)
+	if err := autoConvert_resource_DeviceRequest_To_v1alpha3_DeviceRequest(in, out, s); err != nil {
+		return err
 	}
-
 	if in.Exactly != nil {
 		out.DeviceClassName = in.Exactly.DeviceClassName
 		if in.Exactly.Selectors != nil {
@@ -150,88 +136,10 @@ func Convert_resource_DeviceRequest_To_v1alpha3_DeviceRequest(in *resourceapi.De
 	return nil
 }
 
-func Convert_v1alpha3_ResourceSliceSpec_To_resource_ResourceSliceSpec(in *resourcev1alpha3.ResourceSliceSpec, out *resourceapi.ResourceSliceSpec, s conversion.Scope) error {
-	out.Driver = in.Driver
-	var pool resourceapi.ResourcePool
-	if err := Convert_v1alpha3_ResourcePool_To_resource_ResourcePool(&in.Pool, &pool, s); err != nil {
-		return err
-	}
-	out.Pool = pool
-	if in.NodeName == "" {
-		out.NodeName = nil
-	} else {
-		out.NodeName = &in.NodeName
-	}
-	out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(in.NodeSelector))
-	if !in.AllNodes {
-		out.AllNodes = nil
-	} else {
-		out.AllNodes = &in.AllNodes
-	}
-	var devices []resourceapi.Device
-	for _, e := range in.Devices {
-		var device resourceapi.Device
-		if err := Convert_v1alpha3_Device_To_resource_Device(&e, &device, s); err != nil {
-			return err
-		}
-		devices = append(devices, device)
-	}
-	out.Devices = devices
-	out.PerDeviceNodeSelection = in.PerDeviceNodeSelection
-	var sharedCounters []resourceapi.CounterSet
-	for _, e := range in.SharedCounters {
-		var counterSet resourceapi.CounterSet
-		if err := Convert_v1alpha3_CounterSet_To_resource_CounterSet(&e, &counterSet, s); err != nil {
-			return err
-		}
-		sharedCounters = append(sharedCounters, counterSet)
-	}
-	out.SharedCounters = sharedCounters
-	return nil
-}
-
-func Convert_resource_ResourceSliceSpec_To_v1alpha3_ResourceSliceSpec(in *resourceapi.ResourceSliceSpec, out *resourcev1alpha3.ResourceSliceSpec, s conversion.Scope) error {
-	out.Driver = in.Driver
-	var pool resourcev1alpha3.ResourcePool
-	if err := Convert_resource_ResourcePool_To_v1alpha3_ResourcePool(&in.Pool, &pool, s); err != nil {
-		return err
-	}
-	out.Pool = pool
-	if in.NodeName == nil {
-		out.NodeName = ""
-	} else {
-		out.NodeName = *in.NodeName
-	}
-	out.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
-	if in.AllNodes == nil {
-		out.AllNodes = false
-	} else {
-		out.AllNodes = *in.AllNodes
-	}
-	var devices []resourcev1alpha3.Device
-	for _, e := range in.Devices {
-		var device resourcev1alpha3.Device
-		if err := Convert_resource_Device_To_v1alpha3_Device(&e, &device, s); err != nil {
-			return err
-		}
-		devices = append(devices, device)
-	}
-	out.Devices = devices
-	out.PerDeviceNodeSelection = in.PerDeviceNodeSelection
-	var sharedCounters []resourcev1alpha3.CounterSet
-	for _, e := range in.SharedCounters {
-		var counterSet resourcev1alpha3.CounterSet
-		if err := Convert_resource_CounterSet_To_v1alpha3_CounterSet(&e, &counterSet, s); err != nil {
-			return err
-		}
-		sharedCounters = append(sharedCounters, counterSet)
-	}
-	out.SharedCounters = sharedCounters
-	return nil
-}
-
 func Convert_v1alpha3_Device_To_resource_Device(in *resourcev1alpha3.Device, out *resourceapi.Device, s conversion.Scope) error {
-	out.Name = in.Name
+	if err := autoConvert_v1alpha3_Device_To_resource_Device(in, out, s); err != nil {
+		return err
+	}
 	if in.Basic != nil {
 		basic := in.Basic
 		if len(basic.Attributes) > 0 {
@@ -275,7 +183,9 @@ func Convert_v1alpha3_Device_To_resource_Device(in *resourcev1alpha3.Device, out
 }
 
 func Convert_resource_Device_To_v1alpha3_Device(in *resourceapi.Device, out *resourcev1alpha3.Device, s conversion.Scope) error {
-	out.Name = in.Name
+	if err := autoConvert_resource_Device_To_v1alpha3_Device(in, out, s); err != nil {
+		return err
+	}
 	out.Basic = &resourcev1alpha3.BasicDevice{}
 	if len(in.Attributes) > 0 {
 		attributes := make(map[resourcev1alpha3.QualifiedName]resourcev1alpha3.DeviceAttribute)
