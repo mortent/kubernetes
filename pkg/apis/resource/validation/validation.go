@@ -644,7 +644,15 @@ func validateResourceSliceSpec(spec, oldSpec *resource.ResourceSliceSpec, fldPat
 			return device.Name, "name"
 		}, fldPath.Child("devices"))...)
 
-	allErrs = append(allErrs, validateSet(spec.SharedCounters, resource.ResourceSliceMaxSharedCounters,
+	// Size limit for all counters enforced here.
+	numCounters := 0
+	for _, set := range spec.SharedCounters {
+		numCounters += len(set.Counters)
+	}
+	if numCounters > resource.ResourceSliceMaxSharedCounters {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("sharedCounters"), numCounters, fmt.Sprintf("the total number of counters must not exceed %d", resource.ResourceSliceMaxSharedCounters)))
+	}
+	allErrs = append(allErrs, validateSet(spec.SharedCounters, -1,
 		validateCounterSet,
 		func(counterSet resource.CounterSet) (string, string) {
 			return counterSet.Name, "name"
@@ -663,7 +671,8 @@ func validateCounterSet(counterSet resource.CounterSet, fldPath *field.Path) fie
 	if len(counterSet.Counters) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("counters"), ""))
 	} else {
-		allErrs = append(allErrs, validateMap(counterSet.Counters, resource.ResourceSliceMaxSharedCountersCounters, attributeAndCapacityMaxKeyLength,
+		// The size limit is enforced for across all sets by the caller.
+		allErrs = append(allErrs, validateMap(counterSet.Counters, -1, attributeAndCapacityMaxKeyLength,
 			validateCounterName, validateDeviceCounter, fldPath.Child("counters"))...)
 	}
 
@@ -699,16 +708,21 @@ func validateDevice(device resource.Device, fldPath *field.Path, sharedCounterTo
 	allErrs = append(allErrs, validateDeviceName(device.Name, fldPath.Child("name"))...)
 	// Warn about exceeding the maximum length only once. If any individual
 	// field is too large, then so is the combination.
+	combinedLen := len(device.Attributes) + len(device.Capacity)
+	for _, set := range device.ConsumesCounter {
+		combinedLen += len(set.Counters)
+	}
+	if combinedLen > resource.ResourceSliceMaxAttributesCapacitiesCountersPerDevice {
+		allErrs = append(allErrs, field.Invalid(fldPath, combinedLen, fmt.Sprintf("the total number of attributes, capacities and counters must not exceed %d", resource.ResourceSliceMaxAttributesCapacitiesCountersPerDevice)))
+	}
+
 	allErrs = append(allErrs, validateMap(device.Attributes, -1, attributeAndCapacityMaxKeyLength, validateQualifiedName, validateDeviceAttribute, fldPath.Child("attributes"))...)
 	allErrs = append(allErrs, validateMap(device.Capacity, -1, attributeAndCapacityMaxKeyLength, validateQualifiedName, validateDeviceCapacity, fldPath.Child("capacity"))...)
-	if combinedLen, max := len(device.Attributes)+len(device.Capacity), resource.ResourceSliceMaxAttributesAndCapacitiesPerDevice; combinedLen > max {
-		allErrs = append(allErrs, field.Invalid(fldPath, combinedLen, fmt.Sprintf("the total number of attributes and capacities must not exceed %d", max)))
-	}
 	for i, taint := range device.Taints {
 		allErrs = append(allErrs, validateDeviceTaint(taint, fldPath.Child("taints").Index(i))...)
 	}
 
-	allErrs = append(allErrs, validateSet(device.ConsumesCounter, resource.ResourceSliceMaxDeviceCounterConsumptions,
+	allErrs = append(allErrs, validateSet(device.ConsumesCounter, -1,
 		validateDeviceCounterConsumption,
 		func(deviceCapacityConsumption resource.DeviceCounterConsumption) (string, string) {
 			return deviceCapacityConsumption.SharedCounter, "sharedCounter"
@@ -769,10 +783,11 @@ func validateDeviceCounterConsumption(deviceCounterConsumption resource.DeviceCo
 	if len(deviceCounterConsumption.SharedCounter) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("sharedCounter"), ""))
 	}
-	if deviceCounterConsumption.Counters == nil {
+	if len(deviceCounterConsumption.Counters) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("counters"), ""))
 	} else {
-		allErrs = append(allErrs, validateMap(deviceCounterConsumption.Counters, resource.ResourceSliceMaxDeviceCounterConsumptionCounters, attributeAndCapacityMaxKeyLength,
+		// The size limit is enforced for the entire device.
+		allErrs = append(allErrs, validateMap(deviceCounterConsumption.Counters, -1, attributeAndCapacityMaxKeyLength,
 			validateCounterName, validateDeviceCounter, fldPath.Child("counters"))...)
 	}
 	return allErrs

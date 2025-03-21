@@ -157,7 +157,7 @@ type ResourceSliceSpec struct {
 	//
 	// The names of the SharedCounters must be unique in the ResourceSlice.
 	//
-	// The maximum number of SharedCounters is 32.
+	// The maximum number of counters in all sets is 32.
 	//
 	// +optional
 	// +listType=atomic
@@ -183,7 +183,7 @@ type CounterSet struct {
 	// Counters defines the set of counters for this CounterSet
 	// The name of each counter must be unique in that set and must be a DNS label.
 	//
-	// The maximum number of counters is 32.
+	// The maximum number of counters in all sets is 32.
 	//
 	// +required
 	Counters map[string]Counter
@@ -234,27 +234,9 @@ const ResourceSliceMaxSharedCapacity = 128
 const ResourceSliceMaxDevices = 128
 const PoolNameMaxLength = validation.DNS1123SubdomainMaxLength // Same as for a single node name.
 
-// Defines the max number of SharedCounters that can be specified
-// in a ResourceSlice. This is used to validate the fields:
-// * spec.sharedCounters
+// Defines the max number of shared counters that can be specified
+// in a ResourceSlice. The number is summed up across all sets.
 const ResourceSliceMaxSharedCounters = 32
-
-// Defines the max number of Counters from which a device
-// can consume. This is used to validate the fields:
-// * spec.devices[].consumesCounter
-const ResourceSliceMaxDeviceCounterConsumptions = 32
-
-// Defines the max number of counters
-// that can be specified for sharedCounters in a ResourceSlice.
-// This is used to validate the fields:
-// * spec.sharedCounters[].counters
-const ResourceSliceMaxSharedCountersCounters = 32
-
-// Defines the max number of counters
-// that can be specified for consumesCounter in a ResourceSlice.
-// This is used to validate the fields:
-// * spec.devices[].consumesCounter[].counters
-const ResourceSliceMaxDeviceCounterConsumptionCounters = 32
 
 // Device represents one individual hardware instance that can be selected based
 // on its attributes. Besides the name, exactly one field must be set.
@@ -268,7 +250,7 @@ type Device struct {
 	// Attributes defines the set of attributes for this device.
 	// The name of each attribute must be unique in that set.
 	//
-	// The maximum number of attributes and capacities combined is 32.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	Attributes map[QualifiedName]DeviceAttribute
@@ -276,7 +258,7 @@ type Device struct {
 	// Capacity defines the set of capacities for this device.
 	// The name of each capacity must be unique in that set.
 	//
-	// The maximum number of attributes and capacities combined is 32.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	Capacity map[QualifiedName]DeviceCapacity
@@ -287,9 +269,7 @@ type Device struct {
 	//
 	// There can only be a single entry per counterSet.
 	//
-	// The maximum number of device counter consumption entries
-	// is 32. This is the same as the maximum number of shared counters
-	// allowed in a ResourceSlice.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	// +listType=atomic
@@ -351,8 +331,7 @@ type DeviceCounterConsumption struct {
 	// Counters defines the Counter that will be consumed by
 	// the device.
 	//
-	//
-	// The maximum number of Counters is 32.
+	// The maximum number of attributes, capacities and counters in a device is 32.
 	//
 	// +required
 	Counters map[string]Counter
@@ -377,8 +356,8 @@ type Counter struct {
 	Value resource.Quantity
 }
 
-// Limit for the sum of the number of entries in both attributes and capacity.
-const ResourceSliceMaxAttributesAndCapacitiesPerDevice = 32
+// Limit for the sum of the number of entries in attributes, capacity, counters.
+const ResourceSliceMaxAttributesCapacitiesCountersPerDevice = 32
 
 // QualifiedName is the name of a device attribute or capacity.
 //

@@ -406,27 +406,60 @@ func TestValidateResourceSlice(t *testing.T) {
 				return slice
 			}(),
 		},
-		"combined-attributes-and-capacity-length": {
+		"combined-attributes-capacity-counter-length": {
 			wantFailures: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "devices").Index(2), resourceapi.ResourceSliceMaxAttributesAndCapacitiesPerDevice+1, fmt.Sprintf("the total number of attributes and capacities must not exceed %d", resourceapi.ResourceSliceMaxAttributesAndCapacitiesPerDevice)),
+				field.Invalid(field.NewPath("spec", "devices").Index(3), resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice+1, fmt.Sprintf("the total number of attributes, capacities and counters must not exceed %d", resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice)),
+				field.Invalid(field.NewPath("spec", "sharedCounters"), resourceapi.ResourceSliceMaxSharedCounters*resourceapi.ResourceSliceMaxSharedCounters, fmt.Sprintf("the total number of counters must not exceed %d", resourceapi.ResourceSliceMaxSharedCounters)),
 			},
 			slice: func() *resourceapi.ResourceSlice {
-				slice := testResourceSlice(goodName, goodName, goodName, 3)
+				slice := testResourceSlice(goodName, goodName, goodName, 4)
+				counter := resourceapi.Counter{
+					Value: resource.MustParse("10"),
+				}
+				// Too large overall...
+				for i := 0; i < resourceapi.ResourceSliceMaxSharedCounters; i++ {
+					counters := make(map[string]resourceapi.Counter)
+					for e := 0; e < resourceapi.ResourceSliceMaxSharedCounters; e++ {
+						counters[fmt.Sprintf("counter-%d", e)] = counter
+					}
+					slice.Spec.SharedCounters = append(slice.Spec.SharedCounters,
+						resourceapi.CounterSet{
+							Name:     fmt.Sprintf("set-%d", i),
+							Counters: counters,
+						},
+					)
+				}
 				slice.Spec.Devices[0].Attributes = map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{}
 				slice.Spec.Devices[0].Capacity = map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{}
-				for i := 0; i < resourceapi.ResourceSliceMaxAttributesAndCapacitiesPerDevice; i++ {
+				for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
 					slice.Spec.Devices[0].Attributes[resourceapi.QualifiedName(fmt.Sprintf("attr_%d", i))] = resourceapi.DeviceAttribute{StringValue: ptr.To("x")}
 				}
 				slice.Spec.Devices[1].Attributes = map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{}
 				slice.Spec.Devices[1].Capacity = map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{}
 				quantity := resource.MustParse("1Gi")
 				capacity := resourceapi.DeviceCapacity{Value: quantity}
-				for i := 0; i < resourceapi.ResourceSliceMaxAttributesAndCapacitiesPerDevice; i++ {
+				for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
 					slice.Spec.Devices[1].Capacity[resourceapi.QualifiedName(fmt.Sprintf("cap_%d", i))] = capacity
 				}
+				slice.Spec.Devices[2].Attributes = nil
+				slice.Spec.Devices[2].Capacity = nil
+				for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
+					slice.Spec.Devices[2].ConsumesCounter = append(slice.Spec.Devices[2].ConsumesCounter,
+						resourceapi.DeviceCounterConsumption{
+							SharedCounter: fmt.Sprintf("set-%d", i),
+							Counters: map[string]resourceapi.Counter{
+								"counter-0": resourceapi.Counter{
+									// Integers *not* required.
+									Value: resource.MustParse("0.1"),
+								},
+							},
+						},
+					)
+				}
+
 				// Too large together by one.
-				slice.Spec.Devices[2].Attributes = slice.Spec.Devices[0].Attributes
-				slice.Spec.Devices[2].Capacity = map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{
+				slice.Spec.Devices[3].Attributes = slice.Spec.Devices[0].Attributes
+				slice.Spec.Devices[3].Capacity = map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{
 					"cap": capacity,
 				}
 				return slice
@@ -660,7 +693,7 @@ func TestValidateResourceSlice(t *testing.T) {
 		},
 		"too-large-shared-counters": {
 			wantFailures: field.ErrorList{
-				field.TooMany(field.NewPath("spec", "sharedCounters"), resourceapi.ResourceSliceMaxSharedCounters+1, resourceapi.ResourceSliceMaxSharedCounters),
+				field.Invalid(field.NewPath("spec", "sharedCounters"), resourceapi.ResourceSliceMaxSharedCounters+1, fmt.Sprintf("the total number of counters must not exceed %d", resourceapi.ResourceSliceMaxSharedCounters)),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
@@ -735,13 +768,15 @@ func TestValidateResourceSlice(t *testing.T) {
 		},
 		"too-large-consumes-counter": {
 			wantFailures: field.ErrorList{
-				field.TooMany(field.NewPath("spec", "devices").Index(0).Child("consumesCounter"), resourceapi.ResourceSliceMaxDeviceCounterConsumptions+1, resourceapi.ResourceSliceMaxSharedCounters),
-				field.TooMany(field.NewPath("spec", "sharedCounters"), resourceapi.ResourceSliceMaxDeviceCounterConsumptions+1, resourceapi.ResourceSliceMaxSharedCounters),
+				field.Invalid(field.NewPath("spec", "devices").Index(0), resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice+1, fmt.Sprintf("the total number of attributes, capacities and counters must not exceed %d", resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice)),
+				field.Invalid(field.NewPath("spec", "sharedCounters"), resourceapi.ResourceSliceMaxSharedCounters+1, fmt.Sprintf("the total number of counters must not exceed %d", resourceapi.ResourceSliceMaxSharedCounters)),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
-				slice.Spec.SharedCounters = createSharedCounters(resourceapi.ResourceSliceMaxDeviceCounterConsumptions + 1)
-				slice.Spec.Devices[0].ConsumesCounter = createConsumesCounter(resourceapi.ResourceSliceMaxDeviceCounterConsumptions + 1)
+				slice.Spec.SharedCounters = createSharedCounters(resourceapi.ResourceSliceMaxSharedCounters + 1)
+				slice.Spec.Devices[0].Attributes = nil
+				slice.Spec.Devices[0].Capacity = nil
+				slice.Spec.Devices[0].ConsumesCounter = createConsumesCounter(resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice + 1)
 				return slice
 			}(),
 		},
