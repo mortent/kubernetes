@@ -85,9 +85,9 @@ var sliceWithPartitionableDevices = &resource.ResourceSlice{
 		Devices: []resource.Device{
 			{
 				Name: "device",
-				ConsumesCounter: []resource.DeviceCounterConsumption{
+				ConsumesCounters: []resource.DeviceCounterConsumption{
 					{
-						SharedCounter: "pool-1",
+						CounterSet: "pool-1",
 						Counters: map[string]resource.Counter{
 							"memory": {
 								Value: k8sresource.MustParse("40Gi"),
@@ -189,7 +189,7 @@ func TestResourceSliceStrategyCreate(t *testing.T) {
 				obj.Spec.Devices[0].NodeName = nil
 				obj.Spec.Devices[0].NodeSelector = nil
 				obj.Spec.Devices[0].AllNodes = nil
-				obj.Spec.Devices[0].ConsumesCounter = nil
+				obj.Spec.Devices[0].ConsumesCounters = nil
 				return obj
 			}(),
 		},
@@ -346,7 +346,7 @@ func TestResourceSliceStrategyUpdate(t *testing.T) {
 				obj.Spec.SharedCounters = nil
 				obj.Spec.PerDeviceNodeSelection = nil
 				obj.Spec.NodeName = ptr.To("valid-node-name")
-				obj.Spec.Devices[0].ConsumesCounter = nil
+				obj.Spec.Devices[0].ConsumesCounters = nil
 				obj.Spec.Devices[0].NodeName = nil
 				return obj
 			}(),

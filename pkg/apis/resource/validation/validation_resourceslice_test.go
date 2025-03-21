@@ -444,9 +444,9 @@ func TestValidateResourceSlice(t *testing.T) {
 				slice.Spec.Devices[2].Attributes = nil
 				slice.Spec.Devices[2].Capacity = nil
 				for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
-					slice.Spec.Devices[2].ConsumesCounter = append(slice.Spec.Devices[2].ConsumesCounter,
+					slice.Spec.Devices[2].ConsumesCounters = append(slice.Spec.Devices[2].ConsumesCounters,
 						resourceapi.DeviceCounterConsumption{
-							SharedCounter: fmt.Sprintf("set-%d", i),
+							CounterSet: fmt.Sprintf("set-%d", i),
 							Counters: map[string]resourceapi.Counter{
 								"counter-0": {
 									// Integers *not* required.
@@ -701,15 +701,15 @@ func TestValidateResourceSlice(t *testing.T) {
 				return slice
 			}(),
 		},
-		"missing-sharedcounter-consumes-counter": {
+		"missing-counterset-consumes-counter": {
 			wantFailures: field.ErrorList{
-				field.Required(field.NewPath("spec", "devices").Index(0).Child("consumesCounter").Index(0).Child("sharedCounter"), ""),
-				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounter").Index(0).Child("sharedCounter"), "", "must reference a counterSet defined in the ResourceSlice sharedCounters"),
+				field.Required(field.NewPath("spec", "devices").Index(0).Child("consumesCounters").Index(0).Child("counterSet"), ""),
+				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounters").Index(0).Child("counterSet"), "", "must reference a counterSet defined in the ResourceSlice sharedCounters"),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
 				slice.Spec.SharedCounters = createSharedCounters(1)
-				slice.Spec.Devices[0].ConsumesCounter = []resourceapi.DeviceCounterConsumption{
+				slice.Spec.Devices[0].ConsumesCounters = []resourceapi.DeviceCounterConsumption{
 					{
 						Counters: testCounters(),
 					},
@@ -719,14 +719,14 @@ func TestValidateResourceSlice(t *testing.T) {
 		},
 		"missing-counter-consumes-counter": {
 			wantFailures: field.ErrorList{
-				field.Required(field.NewPath("spec", "devices").Index(0).Child("consumesCounter").Index(0).Child("counters"), ""),
+				field.Required(field.NewPath("spec", "devices").Index(0).Child("consumesCounters").Index(0).Child("counters"), ""),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
 				slice.Spec.SharedCounters = createSharedCounters(1)
-				slice.Spec.Devices[0].ConsumesCounter = []resourceapi.DeviceCounterConsumption{
+				slice.Spec.Devices[0].ConsumesCounters = []resourceapi.DeviceCounterConsumption{
 					{
-						SharedCounter: "sharedcounters-0",
+						CounterSet: "counterset-0",
 					},
 				}
 				return slice
@@ -734,17 +734,17 @@ func TestValidateResourceSlice(t *testing.T) {
 		},
 		"wrong-counterref-consumes-counter": {
 			wantFailures: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounter").Index(0).Child("counters"), "fake", "must reference a counter defined in the ResourceSlice sharedCounters"),
+				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounters").Index(0).Child("counters"), "fake", "must reference a counter defined in the ResourceSlice sharedCounters"),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
 				slice.Spec.SharedCounters = createSharedCounters(1)
-				slice.Spec.Devices[0].ConsumesCounter = []resourceapi.DeviceCounterConsumption{
+				slice.Spec.Devices[0].ConsumesCounters = []resourceapi.DeviceCounterConsumption{
 					{
 						Counters: map[string]resourceapi.Counter{
 							"fake": {Value: resource.MustParse("1Gi")},
 						},
-						SharedCounter: "sharedcounters-0",
+						CounterSet: "counterset-0",
 					},
 				}
 				return slice
@@ -752,15 +752,15 @@ func TestValidateResourceSlice(t *testing.T) {
 		},
 		"wrong-sharedcounterref-consumes-counter": {
 			wantFailures: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounter").Index(0).Child("sharedCounter"), "fake", "must reference a counterSet defined in the ResourceSlice sharedCounters"),
+				field.Invalid(field.NewPath("spec", "devices").Index(0).Child("consumesCounters").Index(0).Child("counterSet"), "fake", "must reference a counterSet defined in the ResourceSlice sharedCounters"),
 			},
 			slice: func() *resourceapi.ResourceSlice {
 				slice := testResourceSlice(goodName, goodName, driverName, 1)
 				slice.Spec.SharedCounters = createSharedCounters(1)
-				slice.Spec.Devices[0].ConsumesCounter = []resourceapi.DeviceCounterConsumption{
+				slice.Spec.Devices[0].ConsumesCounters = []resourceapi.DeviceCounterConsumption{
 					{
-						Counters:      testCounters(),
-						SharedCounter: "fake",
+						Counters:   testCounters(),
+						CounterSet: "fake",
 					},
 				}
 				return slice
@@ -776,7 +776,7 @@ func TestValidateResourceSlice(t *testing.T) {
 				slice.Spec.SharedCounters = createSharedCounters(resourceapi.ResourceSliceMaxSharedCounters + 1)
 				slice.Spec.Devices[0].Attributes = nil
 				slice.Spec.Devices[0].Capacity = nil
-				slice.Spec.Devices[0].ConsumesCounter = createConsumesCounter(resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice + 1)
+				slice.Spec.Devices[0].ConsumesCounters = createConsumesCounters(resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice + 1)
 				return slice
 			}(),
 		},
@@ -879,19 +879,19 @@ func createSharedCounters(count int) []resourceapi.CounterSet {
 	sharedCounters := make([]resourceapi.CounterSet, count)
 	for i := 0; i < count; i++ {
 		sharedCounters[i] = resourceapi.CounterSet{
-			Name:     fmt.Sprintf("sharedcounters-%d", i),
+			Name:     fmt.Sprintf("counterset-%d", i),
 			Counters: testCounters(),
 		}
 	}
 	return sharedCounters
 }
 
-func createConsumesCounter(count int) []resourceapi.DeviceCounterConsumption {
+func createConsumesCounters(count int) []resourceapi.DeviceCounterConsumption {
 	consumeCapacity := make([]resourceapi.DeviceCounterConsumption, count)
 	for i := 0; i < count; i++ {
 		consumeCapacity[i] = resourceapi.DeviceCounterConsumption{
-			SharedCounter: fmt.Sprintf("sharedcounters-%d", i),
-			Counters:      testCounters(),
+			CounterSet: fmt.Sprintf("counterset-%d", i),
+			Counters:   testCounters(),
 		}
 	}
 	return consumeCapacity

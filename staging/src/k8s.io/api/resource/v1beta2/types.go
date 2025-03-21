@@ -160,7 +160,7 @@ type ResourceSliceSpec struct {
 	//
 	// The names of the SharedCounters must be unique in the ResourceSlice.
 	//
-	// The maximum number of SharedCounters is 32.
+	// The maximum number of counters in all sets is 32.
 	//
 	// +optional
 	// +listType=atomic
@@ -186,7 +186,7 @@ type CounterSet struct {
 	// Counters defines the set of counters for this CounterSet
 	// The name of each counter must be unique in that set and must be a DNS label.
 	//
-	// The maximum number of counters is 32.
+	// The maximum number of counters in all sets is 32.
 	//
 	// +required
 	Counters map[string]Counter `json:"counters,omitempty" protobuf:"bytes,2,name=counters"`
@@ -237,14 +237,13 @@ const ResourceSliceMaxSharedCapacity = 128
 const ResourceSliceMaxDevices = 128
 const PoolNameMaxLength = validation.DNS1123SubdomainMaxLength // Same as for a single node name.
 
-// Defines the max number of SharedCounters that can be specified
-// in a ResourceSlice. This is used to validate the fields:
-// * spec.sharedCounters
+// Defines the max number of shared counters that can be specified
+// in a ResourceSlice. The number is summed up across all sets.
 const ResourceSliceMaxSharedCounters = 32
 
 // Defines the max number of Counters from which a device
 // can consume. This is used to validate the fields:
-// * spec.devices[].consumesCounter
+// * spec.devices[].consumesCounters
 const ResourceSliceMaxDeviceCounterConsumptions = 32
 
 // Defines the max number of counters
@@ -254,9 +253,9 @@ const ResourceSliceMaxDeviceCounterConsumptions = 32
 const ResourceSliceMaxSharedCountersCounters = 32
 
 // Defines the max number of counters
-// that can be specified for consumesCounter in a ResourceSlice.
+// that can be specified for consumesCounters in a ResourceSlice.
 // This is used to validate the fields:
-// * spec.devices[].consumesCounter[].counters
+// * spec.devices[].consumesCounters[].counters
 const ResourceSliceMaxDeviceCounterConsumptionCounters = 32
 
 // Device represents one individual hardware instance that can be selected based
@@ -271,7 +270,7 @@ type Device struct {
 	// Attributes defines the set of attributes for this device.
 	// The name of each attribute must be unique in that set.
 	//
-	// The maximum number of attributes and capacities combined is 32.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	Attributes map[QualifiedName]DeviceAttribute `json:"attributes,omitempty" protobuf:"bytes,2,rep,name=attributes"`
@@ -279,25 +278,23 @@ type Device struct {
 	// Capacity defines the set of capacities for this device.
 	// The name of each capacity must be unique in that set.
 	//
-	// The maximum number of attributes and capacities combined is 32.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	Capacity map[QualifiedName]DeviceCapacity `json:"capacity,omitempty" protobuf:"bytes,3,rep,name=capacity"`
 
-	// ConsumesCounter defines a list of references to sharedCounters
+	// ConsumesCounters defines a list of references to sharedCounters
 	// and the set of counters that the device will
 	// consume from those counter sets.
 	//
 	// There can only be a single entry per counterSet.
 	//
-	// The maximum number of device counter consumption entries
-	// is 32. This is the same as the maximum number of shared counters
-	// allowed in a ResourceSlice.
+	// The maximum number of attributes, capacities and counters combined is 32.
 	//
 	// +optional
 	// +listType=atomic
 	// +featureGate=DRAPartitionableDevices
-	ConsumesCounter []DeviceCounterConsumption `json:"consumesCounter,omitempty" protobuf:"bytes,4,rep,name=consumesCounter"`
+	ConsumesCounters []DeviceCounterConsumption `json:"consumesCounters,omitempty" protobuf:"bytes,4,rep,name=consumesCounters"`
 
 	// NodeName identifies the node where the device is available.
 	//
@@ -347,17 +344,17 @@ type Device struct {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 type DeviceCounterConsumption struct {
-	// SharedCounter defines the shared counter from which the
+	// CounterSet defines the set from which the
 	// counters defined will be consumed.
 	//
 	// +required
-	SharedCounter string `json:"sharedCounter" protobuf:"bytes,1,opt,name=sharedCounter"`
+	CounterSet string `json:"counterSet" protobuf:"bytes,1,opt,name=counterSet"`
 
 	// Counters defines the Counter that will be consumed by
 	// the device.
 	//
 	//
-	// The maximum number of Counters is 32.
+	// The maximum number of attributes, capacities and counters in a device is 32.
 	//
 	// +required
 	Counters map[string]Counter `json:"counters,omitempty" protobuf:"bytes,2,opt,name=counters"`
@@ -382,8 +379,8 @@ type Counter struct {
 	Value resource.Quantity `json:"value" protobuf:"bytes,1,rep,name=value"`
 }
 
-// Limit for the sum of the number of entries in both attributes and capacity.
-const ResourceSliceMaxAttributesAndCapacitiesPerDevice = 32
+// Limit for the sum of the number of entries in attributes, capacity, counters.
+const ResourceSliceMaxAttributesCapacitiesCountersPerDevice = 32
 
 // QualifiedName is the name of a device attribute or capacity.
 //

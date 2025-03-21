@@ -681,12 +681,12 @@ func validateCounterSet(counterSet resource.CounterSet, fldPath *field.Path) fie
 
 func gatherSharedCounterCounterNames(sharedCounters []resource.CounterSet) map[string]sets.Set[string] {
 	sharedCounterToCounterMap := make(map[string]sets.Set[string])
-	for _, sharedCounter := range sharedCounters {
+	for _, counterSet := range sharedCounters {
 		counterNames := sets.New[string]()
-		for counterName := range sharedCounter.Counters {
+		for counterName := range counterSet.Counters {
 			counterNames.Insert(counterName)
 		}
-		sharedCounterToCounterMap[sharedCounter.Name] = counterNames
+		sharedCounterToCounterMap[counterSet.Name] = counterNames
 	}
 	return sharedCounterToCounterMap
 }
@@ -709,7 +709,7 @@ func validateDevice(device resource.Device, fldPath *field.Path, sharedCounterTo
 	// Warn about exceeding the maximum length only once. If any individual
 	// field is too large, then so is the combination.
 	combinedLen := len(device.Attributes) + len(device.Capacity)
-	for _, set := range device.ConsumesCounter {
+	for _, set := range device.ConsumesCounters {
 		combinedLen += len(set.Counters)
 	}
 	if combinedLen > resource.ResourceSliceMaxAttributesCapacitiesCountersPerDevice {
@@ -722,23 +722,23 @@ func validateDevice(device resource.Device, fldPath *field.Path, sharedCounterTo
 		allErrs = append(allErrs, validateDeviceTaint(taint, fldPath.Child("taints").Index(i))...)
 	}
 
-	allErrs = append(allErrs, validateSet(device.ConsumesCounter, -1,
+	allErrs = append(allErrs, validateSet(device.ConsumesCounters, -1,
 		validateDeviceCounterConsumption,
 		func(deviceCapacityConsumption resource.DeviceCounterConsumption) (string, string) {
-			return deviceCapacityConsumption.SharedCounter, "sharedCounter"
-		}, fldPath.Child("consumesCounter"))...)
+			return deviceCapacityConsumption.CounterSet, "counterSet"
+		}, fldPath.Child("consumesCounters"))...)
 
-	for i, deviceCounterConsumption := range device.ConsumesCounter {
-		if capacityNames, exists := sharedCounterToCounterNames[deviceCounterConsumption.SharedCounter]; exists {
+	for i, deviceCounterConsumption := range device.ConsumesCounters {
+		if capacityNames, exists := sharedCounterToCounterNames[deviceCounterConsumption.CounterSet]; exists {
 			for capacityName := range deviceCounterConsumption.Counters {
 				if !capacityNames.Has(string(capacityName)) {
-					allErrs = append(allErrs, field.Invalid(fldPath.Child("consumesCounter").Index(i).Child("counters"),
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("consumesCounters").Index(i).Child("counters"),
 						capacityName, "must reference a counter defined in the ResourceSlice sharedCounters"))
 				}
 			}
 		} else {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("consumesCounter").Index(i).Child("sharedCounter"),
-				deviceCounterConsumption.SharedCounter, "must reference a counterSet defined in the ResourceSlice sharedCounters"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("consumesCounters").Index(i).Child("counterSet"),
+				deviceCounterConsumption.CounterSet, "must reference a counterSet defined in the ResourceSlice sharedCounters"))
 		}
 	}
 
@@ -780,8 +780,8 @@ func validateDevice(device resource.Device, fldPath *field.Path, sharedCounterTo
 func validateDeviceCounterConsumption(deviceCounterConsumption resource.DeviceCounterConsumption, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if len(deviceCounterConsumption.SharedCounter) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("sharedCounter"), ""))
+	if len(deviceCounterConsumption.CounterSet) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("counterSet"), ""))
 	}
 	if len(deviceCounterConsumption.Counters) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("counters"), ""))

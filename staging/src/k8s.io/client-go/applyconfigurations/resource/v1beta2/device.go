@@ -29,7 +29,7 @@ type DeviceApplyConfiguration struct {
 	Name            *string                                                             `json:"name,omitempty"`
 	Attributes      map[resourcev1beta2.QualifiedName]DeviceAttributeApplyConfiguration `json:"attributes,omitempty"`
 	Capacity        map[resourcev1beta2.QualifiedName]DeviceCapacityApplyConfiguration  `json:"capacity,omitempty"`
-	ConsumesCounter []DeviceCounterConsumptionApplyConfiguration                        `json:"consumesCounter,omitempty"`
+	ConsumesCounters []DeviceCounterConsumptionApplyConfiguration                        `json:"consumesCounters,omitempty"`
 	NodeName        *string                                                             `json:"nodeName,omitempty"`
 	NodeSelector    *v1.NodeSelectorApplyConfiguration                                  `json:"nodeSelector,omitempty"`
 	AllNodes        *bool                                                               `json:"allNodes,omitempty"`
@@ -78,15 +78,15 @@ func (b *DeviceApplyConfiguration) WithCapacity(entries map[resourcev1beta2.Qual
 	return b
 }
 
-// WithConsumesCounter adds the given value to the ConsumesCounter field in the declarative configuration
+// WithConsumesCounters adds the given value to the ConsumesCounters field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the ConsumesCounter field.
-func (b *DeviceApplyConfiguration) WithConsumesCounter(values ...*DeviceCounterConsumptionApplyConfiguration) *DeviceApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the ConsumesCounters field.
+func (b *DeviceApplyConfiguration) WithConsumesCounters(values ...*DeviceCounterConsumptionApplyConfiguration) *DeviceApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithConsumesCounter")
+			panic("nil value passed to WithConsumesCounters")
 		}
-		b.ConsumesCounter = append(b.ConsumesCounter, *values[i])
+		b.ConsumesCounters = append(b.ConsumesCounters, *values[i])
 	}
 	return b
 }

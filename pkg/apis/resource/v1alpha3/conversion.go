@@ -191,15 +191,15 @@ func Convert_v1alpha3_Device_To_resource_Device(in *resourcev1alpha3.Device, out
 			}
 			out.Capacity = capacity
 		}
-		var consumesCounter []resourceapi.DeviceCounterConsumption
-		for _, e := range basic.ConsumesCounter {
+		var consumesCounters []resourceapi.DeviceCounterConsumption
+		for _, e := range basic.ConsumesCounters {
 			var deviceCounterConsumption resourceapi.DeviceCounterConsumption
 			if err := Convert_v1alpha3_DeviceCounterConsumption_To_resource_DeviceCounterConsumption(&e, &deviceCounterConsumption, s); err != nil {
 				return err
 			}
-			consumesCounter = append(consumesCounter, deviceCounterConsumption)
+			consumesCounters = append(consumesCounters, deviceCounterConsumption)
 		}
-		out.ConsumesCounter = consumesCounter
+		out.ConsumesCounters = consumesCounters
 		out.NodeName = basic.NodeName
 		out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(basic.NodeSelector))
 		out.AllNodes = basic.AllNodes
@@ -236,15 +236,15 @@ func Convert_resource_Device_To_v1alpha3_Device(in *resourceapi.Device, out *res
 		}
 		out.Basic.Capacity = capacity
 	}
-	var consumesCounter []resourcev1alpha3.DeviceCounterConsumption
-	for _, e := range in.ConsumesCounter {
+	var consumesCounters []resourcev1alpha3.DeviceCounterConsumption
+	for _, e := range in.ConsumesCounters {
 		var deviceCounterConsumption resourcev1alpha3.DeviceCounterConsumption
 		if err := Convert_resource_DeviceCounterConsumption_To_v1alpha3_DeviceCounterConsumption(&e, &deviceCounterConsumption, s); err != nil {
 			return err
 		}
-		consumesCounter = append(consumesCounter, deviceCounterConsumption)
+		consumesCounters = append(consumesCounters, deviceCounterConsumption)
 	}
-	out.Basic.ConsumesCounter = consumesCounter
+	out.Basic.ConsumesCounters = consumesCounters
 	out.Basic.NodeName = in.NodeName
 	out.Basic.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
 	out.Basic.AllNodes = in.AllNodes

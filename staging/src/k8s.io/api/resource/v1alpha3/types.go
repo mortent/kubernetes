@@ -284,7 +284,7 @@ type BasicDevice struct {
 	// +optional
 	Capacity map[QualifiedName]resource.Quantity `json:"capacity,omitempty" protobuf:"bytes,2,rep,name=capacity"`
 
-	// ConsumesCounter defines a list of references to sharedCounters
+	// ConsumesCounters defines a list of references to sharedCounters
 	// and the set of counters that the device will
 	// consume from those counter sets.
 	//
@@ -297,7 +297,7 @@ type BasicDevice struct {
 	// +optional
 	// +listType=atomic
 	// +featureGate=DRAPartitionableDevices
-	ConsumesCounter []DeviceCounterConsumption `json:"consumesCounter,omitempty" protobuf:"bytes,3,rep,name=consumesCounter"`
+	ConsumesCounters []DeviceCounterConsumption `json:"consumesCounters,omitempty" protobuf:"bytes,3,rep,name=consumesCounters"`
 
 	// NodeName identifies the node where the device is available.
 	//
@@ -345,11 +345,11 @@ type BasicDevice struct {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 type DeviceCounterConsumption struct {
-	// SharedCounter defines the shared counter from which the
+	// CounterSet defines the set from which the
 	// counters defined will be consumed.
 	//
 	// +required
-	SharedCounter string `json:"sharedCounter" protobuf:"bytes,1,opt,name=sharedCounter"`
+	CounterSet string `json:"counterSet" protobuf:"bytes,1,opt,name=counterSet"`
 
 	// Counters defines the Counter that will be consumed by
 	// the device.

@@ -203,7 +203,7 @@ func dropDisabledDRAPartitionableDevicesFields(newSlice, oldSlice *resource.Reso
 	newSlice.Spec.SharedCounters = nil
 	newSlice.Spec.PerDeviceNodeSelection = nil
 	for i := range newSlice.Spec.Devices {
-		newSlice.Spec.Devices[i].ConsumesCounter = nil
+		newSlice.Spec.Devices[i].ConsumesCounters = nil
 		newSlice.Spec.Devices[i].NodeName = nil
 		newSlice.Spec.Devices[i].NodeSelector = nil
 		newSlice.Spec.Devices[i].AllNodes = nil
@@ -221,7 +221,7 @@ func draPartitionableDevicesFeatureInUse(slice *resource.ResourceSlice) bool {
 	}
 
 	for _, device := range spec.Devices {
-		if len(device.ConsumesCounter) > 0 {
+		if len(device.ConsumesCounters) > 0 {
 			return true
 		}
 		if device.NodeName != nil || device.NodeSelector != nil || device.AllNodes != nil {

@@ -238,6 +238,23 @@ const PoolNameMaxLength = validation.DNS1123SubdomainMaxLength // Same as for a 
 // in a ResourceSlice. The number is summed up across all sets.
 const ResourceSliceMaxSharedCounters = 32
 
+// Defines the max number of Counters from which a device
+// can consume. This is used to validate the fields:
+// * spec.devices[].consumesCounters
+const ResourceSliceMaxDeviceCounterConsumptions = 32
+
+// Defines the max number of counters
+// that can be specified for sharedCounters in a ResourceSlice.
+// This is used to validate the fields:
+// * spec.sharedCounters[].counters
+const ResourceSliceMaxSharedCountersCounters = 32
+
+// Defines the max number of counters
+// that can be specified for consumesCounters in a ResourceSlice.
+// This is used to validate the fields:
+// * spec.devices[].consumesCounters[].counters
+const ResourceSliceMaxDeviceCounterConsumptionCounters = 32
+
 // Device represents one individual hardware instance that can be selected based
 // on its attributes. Besides the name, exactly one field must be set.
 type Device struct {
@@ -263,7 +280,7 @@ type Device struct {
 	// +optional
 	Capacity map[QualifiedName]DeviceCapacity
 
-	// ConsumesCounter defines a list of references to sharedCounters
+	// ConsumesCounters defines a list of references to sharedCounters
 	// and the set of counters that the device will
 	// consume from those counter sets.
 	//
@@ -274,7 +291,7 @@ type Device struct {
 	// +optional
 	// +listType=atomic
 	// +featureGate=DRAPartitionableDevices
-	ConsumesCounter []DeviceCounterConsumption
+	ConsumesCounters []DeviceCounterConsumption
 
 	// NodeName identifies the node where the device is available.
 	//
@@ -287,6 +304,8 @@ type Device struct {
 	NodeName *string
 
 	// NodeSelector defines the nodes where the device is available.
+	//
+	// Must use exactly one term.
 	//
 	// Must only be set if Spec.PerDeviceNodeSelection is set to true.
 	// At most one of NodeName, NodeSelector and AllNodes can be set.
@@ -322,11 +341,11 @@ type Device struct {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 type DeviceCounterConsumption struct {
-	// SharedCounter defines the shared counter from which the
+	// CounterSet defines the set from which the
 	// counters defined will be consumed.
 	//
 	// +required
-	SharedCounter string
+	CounterSet string
 
 	// Counters defines the Counter that will be consumed by
 	// the device.
@@ -675,9 +694,6 @@ type ExactDeviceRequest struct {
 
 	// Count is used only when the count mode is "ExactCount". Must be greater than zero.
 	// If AllocationMode is ExactCount and this field is not specified, the default is one.
-	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
 	//
 	// +optional
 	// +oneOf=AllocationMode
