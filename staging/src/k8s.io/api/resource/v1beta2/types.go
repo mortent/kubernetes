@@ -109,7 +109,7 @@ type ResourceSliceSpec struct {
 	// new nodes of the same type as some old node might also make new
 	// resources available.
 	//
-	// Exactly one of NodeName, NodeSelector and AllNodes must be set.
+	// Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
 	// This field is immutable.
 	//
 	// +optional
@@ -121,7 +121,7 @@ type ResourceSliceSpec struct {
 	//
 	// Must use exactly one term.
 	//
-	// Exactly one of NodeName, NodeSelector and AllNodes must be set.
+	// Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
 	//
 	// +optional
 	// +oneOf=NodeSelection
@@ -129,7 +129,7 @@ type ResourceSliceSpec struct {
 
 	// AllNodes indicates that all nodes have access to the resources in the pool.
 	//
-	// Exactly one of NodeName, NodeSelector and AllNodes must be set.
+	// Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
 	//
 	// +optional
 	// +oneOf=NodeSelection
@@ -148,8 +148,7 @@ type ResourceSliceSpec struct {
 	// device. If it is set to true, every device defined the ResourceSlice
 	// must specify this individually.
 	//
-	// Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection
-	// must be set.
+	// Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
 	//
 	// +optional
 	// +oneOf=NodeSelection
@@ -193,13 +192,9 @@ type CounterSet struct {
 	Counters map[string]Counter `json:"counters,omitempty" protobuf:"bytes,2,name=counters"`
 }
 
-// Counter describes a quantity associated with a device.
-type Counter struct {
-	// Value defines how much of a certain device counter is available.
-	//
-	// +required
-	Value resource.Quantity `json:"value" protobuf:"bytes,1,rep,name=value"`
-}
+// DriverNameMaxLength is the maximum valid length of a driver name in the
+// ResourceSliceSpec and other places. It's the same as for CSI driver names.
+const DriverNameMaxLength = 63
 
 // ResourcePool describes the pool that ResourceSlices belong to.
 type ResourcePool struct {
@@ -241,6 +236,28 @@ type ResourcePool struct {
 const ResourceSliceMaxSharedCapacity = 128
 const ResourceSliceMaxDevices = 128
 const PoolNameMaxLength = validation.DNS1123SubdomainMaxLength // Same as for a single node name.
+
+// Defines the max number of SharedCounters that can be specified
+// in a ResourceSlice. This is used to validate the fields:
+// * spec.sharedCounters
+const ResourceSliceMaxSharedCounters = 32
+
+// Defines the max number of Counters from which a device
+// can consume. This is used to validate the fields:
+// * spec.devices[].consumesCounter
+const ResourceSliceMaxDeviceCounterConsumptions = 32
+
+// Defines the max number of counters
+// that can be specified for sharedCounters in a ResourceSlice.
+// This is used to validate the fields:
+// * spec.sharedCounters[].counters
+const ResourceSliceMaxSharedCountersCounters = 32
+
+// Defines the max number of counters
+// that can be specified for consumesCounter in a ResourceSlice.
+// This is used to validate the fields:
+// * spec.devices[].consumesCounter[].counters
+const ResourceSliceMaxDeviceCounterConsumptionCounters = 32
 
 // Device represents one individual hardware instance that can be selected based
 // on its attributes. Besides the name, exactly one field must be set.
@@ -284,7 +301,7 @@ type Device struct {
 
 	// NodeName identifies the node where the device is available.
 	//
-	// Must only be set if Spec.PerDeviceNodeSelection is set.
+	// Must only be set if Spec.PerDeviceNodeSelection is set to true.
 	// At most one of NodeName, NodeSelector and AllNodes can be set.
 	//
 	// +optional
@@ -296,16 +313,17 @@ type Device struct {
 	//
 	// Must use exactly one term.
 	//
-	// Must only be set if Spec.PerDeviceNodeSelection is set.
+	// Must only be set if Spec.PerDeviceNodeSelection is set to true.
 	// At most one of NodeName, NodeSelector and AllNodes can be set.
 	//
 	// +optional
 	// +oneOf=DeviceNodeSelection
+	// +featureGate=DRAPartitionableDevices
 	NodeSelector *v1.NodeSelector `json:"nodeSelector,omitempty" protobuf:"bytes,6,opt,name=nodeSelector"`
 
 	// AllNodes indicates that all nodes have access to the device.
 	//
-	// Must only be set if Spec.PerDeviceNodeSelection is set.
+	// Must only be set if Spec.PerDeviceNodeSelection is set to true.
 	// At most one of NodeName, NodeSelector and AllNodes can be set.
 	//
 	// +optional
@@ -354,6 +372,14 @@ type DeviceCapacity struct {
 
 	// potential future addition: fields which define how to "consume"
 	// capacity (= share a single device between different consumers).
+}
+
+// Counter describes a quantity associated with a device.
+type Counter struct {
+	// Value defines how much of a certain device counter is available.
+	//
+	// +required
+	Value resource.Quantity `json:"value" protobuf:"bytes,1,rep,name=value"`
 }
 
 // Limit for the sum of the number of entries in both attributes and capacity.
@@ -572,6 +598,15 @@ const (
 	DeviceConfigMaxSize      = 32
 )
 
+// DRAAdminNamespaceLabelKey is a label key used to grant administrative access
+// to certain resource.k8s.io API types within a namespace. When this label is
+// set on a namespace with the value "true" (case-sensitive), it allows the use
+// of adminAccess: true in any namespaced resource.k8s.io API types. Currently,
+// this permission applies to ResourceClaim and ResourceClaimTemplate objects.
+const (
+	DRAAdminNamespaceLabelKey = "resource.k8s.io/admin-access"
+)
+
 // DeviceRequest is a request for devices required for a claim.
 // This is typically a request for a single resource like a device, but can
 // also ask for several identical devices. With FirstAvailable it is also
@@ -601,9 +636,9 @@ type DeviceRequest struct {
 	Exactly *SpecificDeviceRequest `json:"exactly,omitempty" protobuf:"bytes,2,name=exactly"`
 
 	// FirstAvailable contains subrequests, of which exactly one will be
-	// satisfied by the scheduler to satisfy this request. It tries to
+	// selected by the scheduler. It tries to
 	// satisfy them in the order in which they are listed here. So if
-	// there are two entries in the list, the schduler will only check
+	// there are two entries in the list, the scheduler will only check
 	// the second one if it determines that the first one can not be used.
 	//
 	// DRA does not yet implement scoring, so the scheduler will
@@ -627,10 +662,7 @@ type SpecificDeviceRequest struct {
 	// additional configuration and selectors to be inherited by this
 	// request.
 	//
-	// A DeviceClassName is required. Clients must check that it is
-	// indeed set. It's absence indicates that something changed in a way that
-	// is not supported by the client yet, in which case it must refuse to
-	// handle the request.
+	// A DeviceClassName is required.
 	//
 	// Administrators may use this to restrict which devices may get
 	// requested by only installing classes with selectors for permitted
@@ -658,10 +690,11 @@ type SpecificDeviceRequest struct {
 	//   count field.
 	//
 	// - All: This request is for all of the matching devices in a pool.
+	//   At least one device must exist on the node for the allocation to succeed.
 	//   Allocation will fail if some devices are already allocated,
 	//   unless adminAccess is requested.
 	//
-	// If AlloctionMode is not specified, the default mode is ExactCount. If
+	// If AllocationMode is not specified, the default mode is ExactCount. If
 	// the mode is ExactCount and count is not specified, the default count is
 	// one. Any other requests must specify this field.
 	//
@@ -706,9 +739,6 @@ type SpecificDeviceRequest struct {
 	// claim will get deallocated.
 	//
 	// The maximum number of tolerations is 16.
-	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
 	//
 	// This is an alpha field and requires enabling the DRADeviceTaints
 	// feature gate.
@@ -772,7 +802,7 @@ type DeviceSubRequest struct {
 	//   Allocation will fail if some devices are already allocated,
 	//   unless adminAccess is requested.
 	//
-	// If AlloctionMode is not specified, the default mode is ExactCount. If
+	// If AllocationMode is not specified, the default mode is ExactCount. If
 	// the mode is ExactCount and count is not specified, the default count is
 	// one. Any other subrequests must specify this field.
 	//
@@ -929,8 +959,8 @@ type DeviceConstraint struct {
 	// constraint. If this is not specified, this constraint applies to all
 	// requests in this claim.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. If just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the constraint applies to all subrequests.
 	//
 	// +optional
@@ -970,8 +1000,8 @@ type DeviceClaimConfiguration struct {
 	// Requests lists the names of requests where the configuration applies.
 	// If empty, it applies to all requests.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. if just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the configuration applies to all subrequests.
 	//
 	// +optional
@@ -1272,8 +1302,8 @@ type DeviceAllocationConfiguration struct {
 	// Requests lists the names of requests where the configuration applies.
 	// If empty, its applies to all requests.
 	//
-	// References to subrequests must include the name of both the main request
-	// and the subrequest using the format <main request>/<subrequest>. If just
+	// References to subrequests must include the name of the main request
+	// and may include the subrequest using the format <main request>[/<subrequest>]. If just
 	// the main request is given, the configuration applies to all subrequests.
 	//
 	// +optional
@@ -1428,6 +1458,24 @@ type ResourceClaimTemplateList struct {
 	Items []ResourceClaimTemplate `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+const (
+	// AllocatedDeviceStatusMaxConditions represents the maximum number of
+	// conditions in a device status.
+	AllocatedDeviceStatusMaxConditions int = 8
+	// AllocatedDeviceStatusDataMaxLength represents the maximum length of the
+	// raw data in the Data field in a device status.
+	AllocatedDeviceStatusDataMaxLength int = 10 * 1024
+	// NetworkDeviceDataMaxIPs represents the maximum number of IPs in the networkData
+	// field in a device status.
+	NetworkDeviceDataMaxIPs int = 16
+	// NetworkDeviceDataInterfaceNameMaxLength represents the maximum number of characters
+	// for the networkData.interfaceName field in a device status.
+	NetworkDeviceDataInterfaceNameMaxLength int = 256
+	// NetworkDeviceDataHardwareAddressMaxLength represents the maximum number of characters
+	// for the networkData.hardwareAddress field in a device status.
+	NetworkDeviceDataHardwareAddressMaxLength int = 128
+)
+
 // AllocatedDeviceStatus contains the status of an allocated device, if the
 // driver chooses to report it. This may include driver-specific information.
 type AllocatedDeviceStatus struct {
@@ -1459,6 +1507,8 @@ type AllocatedDeviceStatus struct {
 	// Conditions contains the latest observation of the device's state.
 	// If the device has been configured according to the class and claim
 	// config references, the `Ready` condition should be True.
+	//
+	// Must not contain more than 8 entries.
 	//
 	// +optional
 	// +listType=map

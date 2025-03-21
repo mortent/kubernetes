@@ -790,7 +790,7 @@ type DeviceSubRequest struct {
 	//   Allocation will fail if some devices are already allocated,
 	//   unless adminAccess is requested.
 	//
-	// If AlloctionMode is not specified, the default mode is ExactCount. If
+	// If AllocationMode is not specified, the default mode is ExactCount. If
 	// the mode is ExactCount and count is not specified, the default count is
 	// one. Any other subrequests must specify this field.
 	//

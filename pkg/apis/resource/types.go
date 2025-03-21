@@ -626,9 +626,9 @@ type DeviceRequest struct {
 	Exactly *SpecificDeviceRequest
 
 	// FirstAvailable contains subrequests, of which exactly one will be
-	// satisfied by the scheduler to satisfy this request. It tries to
+	// selected by the scheduler. It tries to
 	// satisfy them in the order in which they are listed here. So if
-	// there are two entries in the list, the schduler will only check
+	// there are two entries in the list, the scheduler will only check
 	// the second one if it determines that the first one can not be used.
 	//
 	// DRA does not yet implement scoring, so the scheduler will
@@ -652,10 +652,7 @@ type SpecificDeviceRequest struct {
 	// additional configuration and selectors to be inherited by this
 	// request.
 	//
-	// A DeviceClassName is required. Clients must check that it is
-	// indeed set. It's absence indicates that something changed in a way that
-	// is not supported by the client yet, in which case it must refuse to
-	// handle the request.
+	// A DeviceClassName is required.
 	//
 	// Administrators may use this to restrict which devices may get
 	// requested by only installing classes with selectors for permitted
@@ -670,9 +667,6 @@ type SpecificDeviceRequest struct {
 	// device in order for that device to be considered for this
 	// request. All selectors must be satisfied for a device to be
 	// considered.
-	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
 	//
 	// +optional
 	// +listType=atomic
@@ -693,9 +687,6 @@ type SpecificDeviceRequest struct {
 	// If AllocationMode is not specified, the default mode is ExactCount. If
 	// the mode is ExactCount and count is not specified, the default count is
 	// one. Any other requests must specify this field.
-	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
 	//
 	// More modes may get added in the future. Clients must refuse to handle
 	// requests with unknown modes.
@@ -719,9 +710,6 @@ type SpecificDeviceRequest struct {
 	// all ordinary claims to the device with respect to access modes and
 	// any resource allocations.
 	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
-	//
 	// This is an alpha field and requires enabling the DRAAdminAccess
 	// feature gate. Admin access is disabled if this field is unset or
 	// set to false, otherwise it is enabled.
@@ -744,9 +732,6 @@ type SpecificDeviceRequest struct {
 	// claim will get deallocated.
 	//
 	// The maximum number of tolerations is 16.
-	//
-	// This field can only be set when deviceClassName is set and no subrequests
-	// are specified in the firstAvailable list.
 	//
 	// This is an alpha field and requires enabling the DRADeviceTaints
 	// feature gate.
@@ -810,7 +795,7 @@ type DeviceSubRequest struct {
 	//   Allocation will fail if some devices are already allocated,
 	//   unless adminAccess is requested.
 	//
-	// If AlloctionMode is not specified, the default mode is ExactCount. If
+	// If AllocationMode is not specified, the default mode is ExactCount. If
 	// the mode is ExactCount and count is not specified, the default count is
 	// one. Any other subrequests must specify this field.
 	//
