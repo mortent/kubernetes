@@ -47306,14 +47306,14 @@ func schema_k8sio_api_resource_v1alpha3_BasicDevice(ref common.ReferenceCallback
 							},
 						},
 					},
-					"consumesCounter": {
+					"consumesCounters": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
 								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+							Description: "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -47979,9 +47979,9 @@ func schema_k8sio_api_resource_v1alpha3_DeviceCounterConsumption(ref common.Refe
 				Description: "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"sharedCounter": {
+					"counterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SharedCounter defines the shared counter from which the counters defined will be consumed.",
+							Description: "CounterSet defines the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -48003,7 +48003,7 @@ func schema_k8sio_api_resource_v1alpha3_DeviceCounterConsumption(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"sharedCounter", "counters"},
+				Required: []string{"counterSet", "counters"},
 			},
 		},
 		Dependencies: []string{
@@ -49391,14 +49391,14 @@ func schema_k8sio_api_resource_v1beta1_BasicDevice(ref common.ReferenceCallback)
 							},
 						},
 					},
-					"consumesCounter": {
+					"consumesCounters": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
 								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+							Description: "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -49419,7 +49419,7 @@ func schema_k8sio_api_resource_v1beta1_BasicDevice(ref common.ReferenceCallback)
 					},
 					"nodeSelector": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NodeSelector defines the nodes where the device is available.\n\nMust only be set if Spec.PerDeviceNodeSelection is set to true. At most one of NodeName, NodeSelector and AllNodes can be set.",
+							Description: "NodeSelector defines the nodes where the device is available.\n\nMust use exactly one term.\n\nMust only be set if Spec.PerDeviceNodeSelection is set to true. At most one of NodeName, NodeSelector and AllNodes can be set.",
 							Ref:         ref("k8s.io/api/core/v1.NodeSelector"),
 						},
 					},
@@ -50086,9 +50086,9 @@ func schema_k8sio_api_resource_v1beta1_DeviceCounterConsumption(ref common.Refer
 				Description: "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"sharedCounter": {
+					"counterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SharedCounter defines the shared counter from which the counters defined will be consumed.",
+							Description: "CounterSet defines the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -50110,7 +50110,7 @@ func schema_k8sio_api_resource_v1beta1_DeviceCounterConsumption(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"sharedCounter", "counters"},
+				Required: []string{"counterSet", "counters"},
 			},
 		},
 		Dependencies: []string{
@@ -51336,7 +51336,7 @@ func schema_k8sio_api_resource_v1beta2_CounterSet(ref common.ReferenceCallback) 
 					},
 					"counters": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters is 32.",
+							Description: "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters in all sets is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -51375,7 +51375,7 @@ func schema_k8sio_api_resource_v1beta2_Device(ref common.ReferenceCallback) comm
 					},
 					"attributes": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+							Description: "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -51390,7 +51390,7 @@ func schema_k8sio_api_resource_v1beta2_Device(ref common.ReferenceCallback) comm
 					},
 					"capacity": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+							Description: "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -51403,14 +51403,14 @@ func schema_k8sio_api_resource_v1beta2_Device(ref common.ReferenceCallback) comm
 							},
 						},
 					},
-					"consumesCounter": {
+					"consumesCounters": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
 								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+							Description: "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -51986,9 +51986,9 @@ func schema_k8sio_api_resource_v1beta2_DeviceCounterConsumption(ref common.Refer
 				Description: "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"sharedCounter": {
+					"counterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SharedCounter defines the shared counter from which the counters defined will be consumed.",
+							Description: "CounterSet defines the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -51996,7 +51996,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceCounterConsumption(ref common.Refer
 					},
 					"counters": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
+							Description: "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -52010,7 +52010,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceCounterConsumption(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"sharedCounter", "counters"},
+				Required: []string{"counterSet", "counters"},
 			},
 		},
 		Dependencies: []string{
@@ -53074,7 +53074,7 @@ func schema_k8sio_api_resource_v1beta2_ResourceSliceSpec(ref common.ReferenceCal
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of SharedCounters is 32.",
+							Description: "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of counters in all sets is 32.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

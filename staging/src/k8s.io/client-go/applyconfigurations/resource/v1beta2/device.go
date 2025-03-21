@@ -26,14 +26,14 @@ import (
 // DeviceApplyConfiguration represents a declarative configuration of the Device type for use
 // with apply.
 type DeviceApplyConfiguration struct {
-	Name            *string                                                             `json:"name,omitempty"`
-	Attributes      map[resourcev1beta2.QualifiedName]DeviceAttributeApplyConfiguration `json:"attributes,omitempty"`
-	Capacity        map[resourcev1beta2.QualifiedName]DeviceCapacityApplyConfiguration  `json:"capacity,omitempty"`
+	Name             *string                                                             `json:"name,omitempty"`
+	Attributes       map[resourcev1beta2.QualifiedName]DeviceAttributeApplyConfiguration `json:"attributes,omitempty"`
+	Capacity         map[resourcev1beta2.QualifiedName]DeviceCapacityApplyConfiguration  `json:"capacity,omitempty"`
 	ConsumesCounters []DeviceCounterConsumptionApplyConfiguration                        `json:"consumesCounters,omitempty"`
-	NodeName        *string                                                             `json:"nodeName,omitempty"`
-	NodeSelector    *v1.NodeSelectorApplyConfiguration                                  `json:"nodeSelector,omitempty"`
-	AllNodes        *bool                                                               `json:"allNodes,omitempty"`
-	Taints          []DeviceTaintApplyConfiguration                                     `json:"taints,omitempty"`
+	NodeName         *string                                                             `json:"nodeName,omitempty"`
+	NodeSelector     *v1.NodeSelectorApplyConfiguration                                  `json:"nodeSelector,omitempty"`
+	AllNodes         *bool                                                               `json:"allNodes,omitempty"`
+	Taints           []DeviceTaintApplyConfiguration                                     `json:"taints,omitempty"`
 }
 
 // DeviceApplyConfiguration constructs a declarative configuration of the Device type for use with

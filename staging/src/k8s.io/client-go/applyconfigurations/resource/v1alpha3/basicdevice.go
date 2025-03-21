@@ -27,13 +27,13 @@ import (
 // BasicDeviceApplyConfiguration represents a declarative configuration of the BasicDevice type for use
 // with apply.
 type BasicDeviceApplyConfiguration struct {
-	Attributes      map[resourcev1alpha3.QualifiedName]DeviceAttributeApplyConfiguration `json:"attributes,omitempty"`
-	Capacity        map[resourcev1alpha3.QualifiedName]resource.Quantity                 `json:"capacity,omitempty"`
+	Attributes       map[resourcev1alpha3.QualifiedName]DeviceAttributeApplyConfiguration `json:"attributes,omitempty"`
+	Capacity         map[resourcev1alpha3.QualifiedName]resource.Quantity                 `json:"capacity,omitempty"`
 	ConsumesCounters []DeviceCounterConsumptionApplyConfiguration                         `json:"consumesCounters,omitempty"`
-	NodeName        *string                                                              `json:"nodeName,omitempty"`
-	NodeSelector    *v1.NodeSelectorApplyConfiguration                                   `json:"nodeSelector,omitempty"`
-	AllNodes        *bool                                                                `json:"allNodes,omitempty"`
-	Taints          []DeviceTaintApplyConfiguration                                      `json:"taints,omitempty"`
+	NodeName         *string                                                              `json:"nodeName,omitempty"`
+	NodeSelector     *v1.NodeSelectorApplyConfiguration                                   `json:"nodeSelector,omitempty"`
+	AllNodes         *bool                                                                `json:"allNodes,omitempty"`
+	Taints           []DeviceTaintApplyConfiguration                                      `json:"taints,omitempty"`
 }
 
 // BasicDeviceApplyConfiguration constructs a declarative configuration of the BasicDevice type for use with

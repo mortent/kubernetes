@@ -562,7 +562,7 @@ func autoConvert_resource_Device_To_v1beta1_Device(in *resource.Device, out *res
 	out.Name = in.Name
 	// WARNING: in.Attributes requires manual conversion: does not exist in peer-type
 	// WARNING: in.Capacity requires manual conversion: does not exist in peer-type
-	// WARNING: in.ConsumesCounter requires manual conversion: does not exist in peer-type
+	// WARNING: in.ConsumesCounters requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeName requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeSelector requires manual conversion: does not exist in peer-type
 	// WARNING: in.AllNodes requires manual conversion: does not exist in peer-type
@@ -873,7 +873,7 @@ func Convert_resource_DeviceConstraint_To_v1beta1_DeviceConstraint(in *resource.
 }
 
 func autoConvert_v1beta1_DeviceCounterConsumption_To_resource_DeviceCounterConsumption(in *resourcev1beta1.DeviceCounterConsumption, out *resource.DeviceCounterConsumption, s conversion.Scope) error {
-	out.SharedCounter = in.SharedCounter
+	out.CounterSet = in.CounterSet
 	out.Counters = *(*map[string]resource.Counter)(unsafe.Pointer(&in.Counters))
 	return nil
 }
@@ -884,7 +884,7 @@ func Convert_v1beta1_DeviceCounterConsumption_To_resource_DeviceCounterConsumpti
 }
 
 func autoConvert_resource_DeviceCounterConsumption_To_v1beta1_DeviceCounterConsumption(in *resource.DeviceCounterConsumption, out *resourcev1beta1.DeviceCounterConsumption, s conversion.Scope) error {
-	out.SharedCounter = in.SharedCounter
+	out.CounterSet = in.CounterSet
 	out.Counters = *(*map[string]resourcev1beta1.Counter)(unsafe.Pointer(&in.Counters))
 	return nil
 }

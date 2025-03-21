@@ -114,7 +114,7 @@ message BasicDevice {
   // +optional
   map<string, .k8s.io.apimachinery.pkg.api.resource.Quantity> capacity = 2;
 
-  // ConsumesCounter defines a list of references to sharedCounters
+  // ConsumesCounters defines a list of references to sharedCounters
   // and the set of counters that the device will
   // consume from those counter sets.
   //
@@ -127,7 +127,7 @@ message BasicDevice {
   // +optional
   // +listType=atomic
   // +featureGate=DRAPartitionableDevices
-  repeated DeviceCounterConsumption consumesCounter = 3;
+  repeated DeviceCounterConsumption consumesCounters = 3;
 
   // NodeName identifies the node where the device is available.
   //
@@ -500,11 +500,11 @@ message DeviceConstraint {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 message DeviceCounterConsumption {
-  // SharedCounter defines the shared counter from which the
+  // CounterSet defines the set from which the
   // counters defined will be consumed.
   //
   // +required
-  optional string sharedCounter = 1;
+  optional string counterSet = 1;
 
   // Counters defines the Counter that will be consumed by
   // the device.

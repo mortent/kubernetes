@@ -12619,7 +12619,7 @@ var schemaYAML = typed.YAMLObject(`types:
         map:
           elementType:
             namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-    - name: consumesCounter
+    - name: consumesCounters
       type:
         list:
           elementType:
@@ -12804,15 +12804,15 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1alpha3.DeviceCounterConsumption
   map:
     fields:
+    - name: counterSet
+      type:
+        scalar: string
+      default: ""
     - name: counters
       type:
         map:
           elementType:
             namedType: io.k8s.api.resource.v1alpha3.Counter
-    - name: sharedCounter
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.resource.v1alpha3.DeviceRequest
   map:
     fields:
@@ -13243,7 +13243,7 @@ var schemaYAML = typed.YAMLObject(`types:
         map:
           elementType:
             namedType: io.k8s.api.resource.v1beta1.DeviceCapacity
-    - name: consumesCounter
+    - name: consumesCounters
       type:
         list:
           elementType:
@@ -13434,15 +13434,15 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta1.DeviceCounterConsumption
   map:
     fields:
+    - name: counterSet
+      type:
+        scalar: string
+      default: ""
     - name: counters
       type:
         map:
           elementType:
             namedType: io.k8s.api.resource.v1beta1.Counter
-    - name: sharedCounter
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.resource.v1beta1.DeviceRequest
   map:
     fields:
@@ -13850,7 +13850,7 @@ var schemaYAML = typed.YAMLObject(`types:
         map:
           elementType:
             namedType: io.k8s.api.resource.v1beta2.DeviceCapacity
-    - name: consumesCounter
+    - name: consumesCounters
       type:
         list:
           elementType:
@@ -14010,15 +14010,15 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta2.DeviceCounterConsumption
   map:
     fields:
+    - name: counterSet
+      type:
+        scalar: string
+      default: ""
     - name: counters
       type:
         map:
           elementType:
             namedType: io.k8s.api.resource.v1beta2.Counter
-    - name: sharedCounter
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.resource.v1beta2.DeviceRequest
   map:
     fields:

@@ -15012,8 +15012,8 @@
           "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
           "type": "object"
         },
-        "consumesCounter": {
-          "description": "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+        "consumesCounters": {
+          "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
           "items": {
             "$ref": "#/definitions/io.k8s.api.resource.v1alpha3.DeviceCounterConsumption"
           },
@@ -15341,20 +15341,20 @@
     "io.k8s.api.resource.v1alpha3.DeviceCounterConsumption": {
       "description": "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
       "properties": {
+        "counterSet": {
+          "description": "CounterSet defines the set from which the counters defined will be consumed.",
+          "type": "string"
+        },
         "counters": {
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1alpha3.Counter"
           },
           "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
           "type": "object"
-        },
-        "sharedCounter": {
-          "description": "SharedCounter defines the shared counter from which the counters defined will be consumed.",
-          "type": "string"
         }
       },
       "required": [
-        "sharedCounter",
+        "counterSet",
         "counters"
       ],
       "type": "object"
@@ -16160,8 +16160,8 @@
           "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
           "type": "object"
         },
-        "consumesCounter": {
-          "description": "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+        "consumesCounters": {
+          "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
           "items": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta1.DeviceCounterConsumption"
           },
@@ -16174,7 +16174,7 @@
         },
         "nodeSelector": {
           "$ref": "#/definitions/io.k8s.api.core.v1.NodeSelector",
-          "description": "NodeSelector defines the nodes where the device is available.\n\nMust only be set if Spec.PerDeviceNodeSelection is set to true. At most one of NodeName, NodeSelector and AllNodes can be set."
+          "description": "NodeSelector defines the nodes where the device is available.\n\nMust use exactly one term.\n\nMust only be set if Spec.PerDeviceNodeSelection is set to true. At most one of NodeName, NodeSelector and AllNodes can be set."
         },
         "taints": {
           "description": "If specified, these are the driver-defined taints.\n\nThe maximum number of taints is 8.\n\nThis is an alpha field and requires enabling the DRADeviceTaints feature gate.",
@@ -16502,20 +16502,20 @@
     "io.k8s.api.resource.v1beta1.DeviceCounterConsumption": {
       "description": "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
       "properties": {
+        "counterSet": {
+          "description": "CounterSet defines the set from which the counters defined will be consumed.",
+          "type": "string"
+        },
         "counters": {
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta1.Counter"
           },
           "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
           "type": "object"
-        },
-        "sharedCounter": {
-          "description": "SharedCounter defines the shared counter from which the counters defined will be consumed.",
-          "type": "string"
         }
       },
       "required": [
-        "sharedCounter",
+        "counterSet",
         "counters"
       ],
       "type": "object"
@@ -17219,7 +17219,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.Counter"
           },
-          "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters is 32.",
+          "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters in all sets is 32.",
           "type": "object"
         },
         "name": {
@@ -17244,18 +17244,18 @@
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.DeviceAttribute"
           },
-          "description": "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+          "description": "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
           "type": "object"
         },
         "capacity": {
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.DeviceCapacity"
           },
-          "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+          "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
           "type": "object"
         },
-        "consumesCounter": {
-          "description": "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+        "consumesCounters": {
+          "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
           "items": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.DeviceCounterConsumption"
           },
@@ -17539,20 +17539,20 @@
     "io.k8s.api.resource.v1beta2.DeviceCounterConsumption": {
       "description": "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
       "properties": {
+        "counterSet": {
+          "description": "CounterSet defines the set from which the counters defined will be consumed.",
+          "type": "string"
+        },
         "counters": {
           "additionalProperties": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.Counter"
           },
-          "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
+          "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
           "type": "object"
-        },
-        "sharedCounter": {
-          "description": "SharedCounter defines the shared counter from which the counters defined will be consumed.",
-          "type": "string"
         }
       },
       "required": [
-        "sharedCounter",
+        "counterSet",
         "counters"
       ],
       "type": "object"
@@ -18166,7 +18166,7 @@
           "description": "Pool describes the pool that this ResourceSlice belongs to."
         },
         "sharedCounters": {
-          "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of SharedCounters is 32.",
+          "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of counters in all sets is 32.",
           "items": {
             "$ref": "#/definitions/io.k8s.api.resource.v1beta2.CounterSet"
           },

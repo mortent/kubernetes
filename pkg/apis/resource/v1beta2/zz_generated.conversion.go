@@ -566,7 +566,7 @@ func autoConvert_v1beta2_Device_To_resource_Device(in *resourcev1beta2.Device, o
 	out.Name = in.Name
 	out.Attributes = *(*map[resource.QualifiedName]resource.DeviceAttribute)(unsafe.Pointer(&in.Attributes))
 	out.Capacity = *(*map[resource.QualifiedName]resource.DeviceCapacity)(unsafe.Pointer(&in.Capacity))
-	out.ConsumesCounter = *(*[]resource.DeviceCounterConsumption)(unsafe.Pointer(&in.ConsumesCounter))
+	out.ConsumesCounters = *(*[]resource.DeviceCounterConsumption)(unsafe.Pointer(&in.ConsumesCounters))
 	out.NodeName = (*string)(unsafe.Pointer(in.NodeName))
 	out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(in.NodeSelector))
 	out.AllNodes = (*bool)(unsafe.Pointer(in.AllNodes))
@@ -583,7 +583,7 @@ func autoConvert_resource_Device_To_v1beta2_Device(in *resource.Device, out *res
 	out.Name = in.Name
 	out.Attributes = *(*map[resourcev1beta2.QualifiedName]resourcev1beta2.DeviceAttribute)(unsafe.Pointer(&in.Attributes))
 	out.Capacity = *(*map[resourcev1beta2.QualifiedName]resourcev1beta2.DeviceCapacity)(unsafe.Pointer(&in.Capacity))
-	out.ConsumesCounter = *(*[]resourcev1beta2.DeviceCounterConsumption)(unsafe.Pointer(&in.ConsumesCounter))
+	out.ConsumesCounters = *(*[]resourcev1beta2.DeviceCounterConsumption)(unsafe.Pointer(&in.ConsumesCounters))
 	out.NodeName = (*string)(unsafe.Pointer(in.NodeName))
 	out.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
 	out.AllNodes = (*bool)(unsafe.Pointer(in.AllNodes))
@@ -879,7 +879,7 @@ func Convert_resource_DeviceConstraint_To_v1beta2_DeviceConstraint(in *resource.
 }
 
 func autoConvert_v1beta2_DeviceCounterConsumption_To_resource_DeviceCounterConsumption(in *resourcev1beta2.DeviceCounterConsumption, out *resource.DeviceCounterConsumption, s conversion.Scope) error {
-	out.SharedCounter = in.SharedCounter
+	out.CounterSet = in.CounterSet
 	out.Counters = *(*map[string]resource.Counter)(unsafe.Pointer(&in.Counters))
 	return nil
 }
@@ -890,7 +890,7 @@ func Convert_v1beta2_DeviceCounterConsumption_To_resource_DeviceCounterConsumpti
 }
 
 func autoConvert_resource_DeviceCounterConsumption_To_v1beta2_DeviceCounterConsumption(in *resource.DeviceCounterConsumption, out *resourcev1beta2.DeviceCounterConsumption, s conversion.Scope) error {
-	out.SharedCounter = in.SharedCounter
+	out.CounterSet = in.CounterSet
 	out.Counters = *(*map[string]resourcev1beta2.Counter)(unsafe.Pointer(&in.Counters))
 	return nil
 }

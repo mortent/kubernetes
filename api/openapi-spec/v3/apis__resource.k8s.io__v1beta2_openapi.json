@@ -210,7 +210,7 @@
               ],
               "default": {}
             },
-            "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters is 32.",
+            "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters in all sets is 32.",
             "type": "object"
           },
           "name": {
@@ -241,7 +241,7 @@
               ],
               "default": {}
             },
-            "description": "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+            "description": "Attributes defines the set of attributes for this device. The name of each attribute must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
             "type": "object"
           },
           "capacity": {
@@ -253,11 +253,11 @@
               ],
               "default": {}
             },
-            "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes and capacities combined is 32.",
+            "description": "Capacity defines the set of capacities for this device. The name of each capacity must be unique in that set.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
             "type": "object"
           },
-          "consumesCounter": {
-            "description": "ConsumesCounter defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of device counter consumption entries is 32. This is the same as the maximum number of shared counters allowed in a ResourceSlice.",
+          "consumesCounters": {
+            "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of attributes, capacities and counters combined is 32.",
             "items": {
               "allOf": [
                 {
@@ -631,6 +631,11 @@
       "io.k8s.api.resource.v1beta2.DeviceCounterConsumption": {
         "description": "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
         "properties": {
+          "counterSet": {
+            "default": "",
+            "description": "CounterSet defines the set from which the counters defined will be consumed.",
+            "type": "string"
+          },
           "counters": {
             "additionalProperties": {
               "allOf": [
@@ -640,17 +645,12 @@
               ],
               "default": {}
             },
-            "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
+            "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
             "type": "object"
-          },
-          "sharedCounter": {
-            "default": "",
-            "description": "SharedCounter defines the shared counter from which the counters defined will be consumed.",
-            "type": "string"
           }
         },
         "required": [
-          "sharedCounter",
+          "counterSet",
           "counters"
         ],
         "type": "object"
@@ -1438,7 +1438,7 @@
             "description": "Pool describes the pool that this ResourceSlice belongs to."
           },
           "sharedCounters": {
-            "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of SharedCounters is 32.",
+            "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of counters in all sets is 32.",
             "items": {
               "allOf": [
                 {
