@@ -1810,6 +1810,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &applyconfigurationsresourcev1beta2.DeviceTaintApplyConfiguration{}
 	case resourcev1beta2.SchemeGroupVersion.WithKind("DeviceToleration"):
 		return &applyconfigurationsresourcev1beta2.DeviceTolerationApplyConfiguration{}
+	case resourcev1beta2.SchemeGroupVersion.WithKind("ExactDeviceRequest"):
+		return &applyconfigurationsresourcev1beta2.ExactDeviceRequestApplyConfiguration{}
 	case resourcev1beta2.SchemeGroupVersion.WithKind("NetworkDeviceData"):
 		return &applyconfigurationsresourcev1beta2.NetworkDeviceDataApplyConfiguration{}
 	case resourcev1beta2.SchemeGroupVersion.WithKind("OpaqueDeviceConfiguration"):
@@ -1832,8 +1834,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &applyconfigurationsresourcev1beta2.ResourceSliceApplyConfiguration{}
 	case resourcev1beta2.SchemeGroupVersion.WithKind("ResourceSliceSpec"):
 		return &applyconfigurationsresourcev1beta2.ResourceSliceSpecApplyConfiguration{}
-	case resourcev1beta2.SchemeGroupVersion.WithKind("SpecificDeviceRequest"):
-		return &applyconfigurationsresourcev1beta2.SpecificDeviceRequestApplyConfiguration{}
 
 		// Group=scheduling.k8s.io, Version=v1
 	case schedulingv1.SchemeGroupVersion.WithKind("PriorityClass"):

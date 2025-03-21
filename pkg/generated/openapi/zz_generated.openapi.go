@@ -1025,6 +1025,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/resource/v1beta2.DeviceSubRequest":                                                          schema_k8sio_api_resource_v1beta2_DeviceSubRequest(ref),
 		"k8s.io/api/resource/v1beta2.DeviceTaint":                                                               schema_k8sio_api_resource_v1beta2_DeviceTaint(ref),
 		"k8s.io/api/resource/v1beta2.DeviceToleration":                                                          schema_k8sio_api_resource_v1beta2_DeviceToleration(ref),
+		"k8s.io/api/resource/v1beta2.ExactDeviceRequest":                                                        schema_k8sio_api_resource_v1beta2_ExactDeviceRequest(ref),
 		"k8s.io/api/resource/v1beta2.NetworkDeviceData":                                                         schema_k8sio_api_resource_v1beta2_NetworkDeviceData(ref),
 		"k8s.io/api/resource/v1beta2.OpaqueDeviceConfiguration":                                                 schema_k8sio_api_resource_v1beta2_OpaqueDeviceConfiguration(ref),
 		"k8s.io/api/resource/v1beta2.ResourceClaim":                                                             schema_k8sio_api_resource_v1beta2_ResourceClaim(ref),
@@ -1039,7 +1040,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/resource/v1beta2.ResourceSlice":                                                             schema_k8sio_api_resource_v1beta2_ResourceSlice(ref),
 		"k8s.io/api/resource/v1beta2.ResourceSliceList":                                                         schema_k8sio_api_resource_v1beta2_ResourceSliceList(ref),
 		"k8s.io/api/resource/v1beta2.ResourceSliceSpec":                                                         schema_k8sio_api_resource_v1beta2_ResourceSliceSpec(ref),
-		"k8s.io/api/resource/v1beta2.SpecificDeviceRequest":                                                     schema_k8sio_api_resource_v1beta2_SpecificDeviceRequest(ref),
 		"k8s.io/api/scheduling/v1.PriorityClass":                                                                schema_k8sio_api_scheduling_v1_PriorityClass(ref),
 		"k8s.io/api/scheduling/v1.PriorityClassList":                                                            schema_k8sio_api_scheduling_v1_PriorityClassList(ref),
 		"k8s.io/api/scheduling/v1alpha1.PriorityClass":                                                          schema_k8sio_api_scheduling_v1alpha1_PriorityClass(ref),
@@ -52036,7 +52036,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceRequest(ref common.ReferenceCallbac
 					"exactly": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Exactly specifies the details for a single request that must be met exactly for the request to be satisfied.\n\nOne of Exactly or FirstAvailable must be set.",
-							Ref:         ref("k8s.io/api/resource/v1beta2.SpecificDeviceRequest"),
+							Ref:         ref("k8s.io/api/resource/v1beta2.ExactDeviceRequest"),
 						},
 					},
 					"firstAvailable": {
@@ -52063,7 +52063,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceRequest(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/resource/v1beta2.DeviceSubRequest", "k8s.io/api/resource/v1beta2.SpecificDeviceRequest"},
+			"k8s.io/api/resource/v1beta2.DeviceSubRequest", "k8s.io/api/resource/v1beta2.ExactDeviceRequest"},
 	}
 }
 
@@ -52166,7 +52166,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceSubRequest(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "DeviceSubRequest describes a request for device provided in the claim.spec.devices.requests[].firstAvailable array. Each is typically a request for a single resource like a device, but can also ask for several identical devices.\n\nDeviceSubRequest is similar to SpecificDeviceRequest, but doesn't expose the AdminAccess field as that one is only supported when requesting a specific device.",
+				Description: "DeviceSubRequest describes a request for device provided in the claim.spec.devices.requests[].firstAvailable array. Each is typically a request for a single resource like a device, but can also ask for several identical devices.\n\nDeviceSubRequest is similar to ExactDeviceRequest, but doesn't expose the AdminAccess field as that one is only supported when requesting a specific device.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
@@ -52340,6 +52340,89 @@ func schema_k8sio_api_resource_v1beta2_DeviceToleration(ref common.ReferenceCall
 				},
 			},
 		},
+	}
+}
+
+func schema_k8sio_api_resource_v1beta2_ExactDeviceRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ExactDeviceRequest is a request for one or more identical devices.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"deviceClassName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DeviceClassName references a specific DeviceClass, which can define additional configuration and selectors to be inherited by this request.\n\nA DeviceClassName is required.\n\nAdministrators may use this to restrict which devices may get requested by only installing classes with selectors for permitted devices. If users are free to request anything without restrictions, then administrators can create an empty DeviceClass for users to reference.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"selectors": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Selectors define criteria which must be satisfied by a specific device in order for that device to be considered for this request. All selectors must be satisfied for a device to be considered.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/resource/v1beta2.DeviceSelector"),
+									},
+								},
+							},
+						},
+					},
+					"allocationMode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AllocationMode and its related fields define how devices are allocated to satisfy this request. Supported values are:\n\n- ExactCount: This request is for a specific number of devices.\n  This is the default. The exact number is provided in the\n  count field.\n\n- All: This request is for all of the matching devices in a pool.\n  At least one device must exist on the node for the allocation to succeed.\n  Allocation will fail if some devices are already allocated,\n  unless adminAccess is requested.\n\nIf AllocationMode is not specified, the default mode is ExactCount. If the mode is ExactCount and count is not specified, the default count is one. Any other requests must specify this field.\n\nMore modes may get added in the future. Clients must refuse to handle requests with unknown modes.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"count": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Count is used only when the count mode is \"ExactCount\". Must be greater than zero. If AllocationMode is ExactCount and this field is not specified, the default is one.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"adminAccess": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AdminAccess indicates that this is a claim for administrative access to the device(s). Claims with AdminAccess are expected to be used for monitoring or other management services for a device.  They ignore all ordinary claims to the device with respect to access modes and any resource allocations.\n\nThis is an alpha field and requires enabling the DRAAdminAccess feature gate. Admin access is disabled if this field is unset or set to false, otherwise it is enabled.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"tolerations": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified, the request's tolerations.\n\nTolerations for NoSchedule are required to allocate a device which has a taint with that effect. The same applies to NoExecute.\n\nIn addition, should any of the allocated devices get tainted with NoExecute after allocation and that effect is not tolerated, then all pods consuming the ResourceClaim get deleted to evict them. The scheduler will not let new pods reserve the claim while it has these tainted devices. Once all pods are evicted, the claim will get deallocated.\n\nThe maximum number of tolerations is 16.\n\nThis is an alpha field and requires enabling the DRADeviceTaints feature gate.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/resource/v1beta2.DeviceToleration"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"deviceClassName"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1beta2.DeviceSelector", "k8s.io/api/resource/v1beta2.DeviceToleration"},
 	}
 }
 
@@ -53009,89 +53092,6 @@ func schema_k8sio_api_resource_v1beta2_ResourceSliceSpec(ref common.ReferenceCal
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.NodeSelector", "k8s.io/api/resource/v1beta2.CounterSet", "k8s.io/api/resource/v1beta2.Device", "k8s.io/api/resource/v1beta2.ResourcePool"},
-	}
-}
-
-func schema_k8sio_api_resource_v1beta2_SpecificDeviceRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "SpecificDeviceRequest is a request for one or more identical devices.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"deviceClassName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DeviceClassName references a specific DeviceClass, which can define additional configuration and selectors to be inherited by this request.\n\nA DeviceClassName is required.\n\nAdministrators may use this to restrict which devices may get requested by only installing classes with selectors for permitted devices. If users are free to request anything without restrictions, then administrators can create an empty DeviceClass for users to reference.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"selectors": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "Selectors define criteria which must be satisfied by a specific device in order for that device to be considered for this request. All selectors must be satisfied for a device to be considered.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/api/resource/v1beta2.DeviceSelector"),
-									},
-								},
-							},
-						},
-					},
-					"allocationMode": {
-						SchemaProps: spec.SchemaProps{
-							Description: "AllocationMode and its related fields define how devices are allocated to satisfy this request. Supported values are:\n\n- ExactCount: This request is for a specific number of devices.\n  This is the default. The exact number is provided in the\n  count field.\n\n- All: This request is for all of the matching devices in a pool.\n  At least one device must exist on the node for the allocation to succeed.\n  Allocation will fail if some devices are already allocated,\n  unless adminAccess is requested.\n\nIf AllocationMode is not specified, the default mode is ExactCount. If the mode is ExactCount and count is not specified, the default count is one. Any other requests must specify this field.\n\nMore modes may get added in the future. Clients must refuse to handle requests with unknown modes.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"count": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Count is used only when the count mode is \"ExactCount\". Must be greater than zero. If AllocationMode is ExactCount and this field is not specified, the default is one.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"adminAccess": {
-						SchemaProps: spec.SchemaProps{
-							Description: "AdminAccess indicates that this is a claim for administrative access to the device(s). Claims with AdminAccess are expected to be used for monitoring or other management services for a device.  They ignore all ordinary claims to the device with respect to access modes and any resource allocations.\n\nThis is an alpha field and requires enabling the DRAAdminAccess feature gate. Admin access is disabled if this field is unset or set to false, otherwise it is enabled.",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"tolerations": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "If specified, the request's tolerations.\n\nTolerations for NoSchedule are required to allocate a device which has a taint with that effect. The same applies to NoExecute.\n\nIn addition, should any of the allocated devices get tainted with NoExecute after allocation and that effect is not tolerated, then all pods consuming the ResourceClaim get deleted to evict them. The scheduler will not let new pods reserve the claim while it has these tainted devices. Once all pods are evicted, the claim will get deallocated.\n\nThe maximum number of tolerations is 16.\n\nThis is an alpha field and requires enabling the DRADeviceTaints feature gate.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/api/resource/v1beta2.DeviceToleration"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"deviceClassName"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/resource/v1beta2.DeviceSelector", "k8s.io/api/resource/v1beta2.DeviceToleration"},
 	}
 }
 

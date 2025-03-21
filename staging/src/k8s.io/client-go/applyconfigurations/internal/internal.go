@@ -14024,7 +14024,7 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: exactly
       type:
-        namedType: io.k8s.api.resource.v1beta2.SpecificDeviceRequest
+        namedType: io.k8s.api.resource.v1beta2.ExactDeviceRequest
     - name: firstAvailable
       type:
         list:
@@ -14134,6 +14134,34 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: value
       type:
         scalar: string
+- name: io.k8s.api.resource.v1beta2.ExactDeviceRequest
+  map:
+    fields:
+    - name: adminAccess
+      type:
+        scalar: boolean
+    - name: allocationMode
+      type:
+        scalar: string
+    - name: count
+      type:
+        scalar: numeric
+    - name: deviceClassName
+      type:
+        scalar: string
+      default: ""
+    - name: selectors
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.resource.v1beta2.DeviceSelector
+          elementRelationship: atomic
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.resource.v1beta2.DeviceToleration
+          elementRelationship: atomic
 - name: io.k8s.api.resource.v1beta2.NetworkDeviceData
   map:
     fields:
@@ -14323,34 +14351,6 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: io.k8s.api.resource.v1beta2.CounterSet
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta2.SpecificDeviceRequest
-  map:
-    fields:
-    - name: adminAccess
-      type:
-        scalar: boolean
-    - name: allocationMode
-      type:
-        scalar: string
-    - name: count
-      type:
-        scalar: numeric
-    - name: deviceClassName
-      type:
-        scalar: string
-      default: ""
-    - name: selectors
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta2.DeviceSelector
-          elementRelationship: atomic
-    - name: tolerations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta2.DeviceToleration
           elementRelationship: atomic
 - name: io.k8s.api.scheduling.v1.PriorityClass
   map:

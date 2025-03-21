@@ -47,7 +47,7 @@ func SetObjectDefaults_ResourceClaim(in *resourcev1beta2.ResourceClaim) {
 	for i := range in.Spec.Devices.Requests {
 		a := &in.Spec.Devices.Requests[i]
 		if a.Exactly != nil {
-			SetDefaults_SpecificDeviceRequest(a.Exactly)
+			SetDefaults_ExactDeviceRequest(a.Exactly)
 			for j := range a.Exactly.Tolerations {
 				b := &a.Exactly.Tolerations[j]
 				if b.Operator == "" {
@@ -90,7 +90,7 @@ func SetObjectDefaults_ResourceClaimTemplate(in *resourcev1beta2.ResourceClaimTe
 	for i := range in.Spec.Spec.Devices.Requests {
 		a := &in.Spec.Spec.Devices.Requests[i]
 		if a.Exactly != nil {
-			SetDefaults_SpecificDeviceRequest(a.Exactly)
+			SetDefaults_ExactDeviceRequest(a.Exactly)
 			for j := range a.Exactly.Tolerations {
 				b := &a.Exactly.Tolerations[j]
 				if b.Operator == "" {

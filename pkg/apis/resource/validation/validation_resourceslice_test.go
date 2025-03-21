@@ -448,7 +448,7 @@ func TestValidateResourceSlice(t *testing.T) {
 						resourceapi.DeviceCounterConsumption{
 							SharedCounter: fmt.Sprintf("set-%d", i),
 							Counters: map[string]resourceapi.Counter{
-								"counter-0": resourceapi.Counter{
+								"counter-0": {
 									// Integers *not* required.
 									Value: resource.MustParse("0.1"),
 								},

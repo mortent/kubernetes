@@ -22,9 +22,9 @@ import (
 	resourcev1beta2 "k8s.io/api/resource/v1beta2"
 )
 
-// SpecificDeviceRequestApplyConfiguration represents a declarative configuration of the SpecificDeviceRequest type for use
+// ExactDeviceRequestApplyConfiguration represents a declarative configuration of the ExactDeviceRequest type for use
 // with apply.
-type SpecificDeviceRequestApplyConfiguration struct {
+type ExactDeviceRequestApplyConfiguration struct {
 	DeviceClassName *string                               `json:"deviceClassName,omitempty"`
 	Selectors       []DeviceSelectorApplyConfiguration    `json:"selectors,omitempty"`
 	AllocationMode  *resourcev1beta2.DeviceAllocationMode `json:"allocationMode,omitempty"`
@@ -33,16 +33,16 @@ type SpecificDeviceRequestApplyConfiguration struct {
 	Tolerations     []DeviceTolerationApplyConfiguration  `json:"tolerations,omitempty"`
 }
 
-// SpecificDeviceRequestApplyConfiguration constructs a declarative configuration of the SpecificDeviceRequest type for use with
+// ExactDeviceRequestApplyConfiguration constructs a declarative configuration of the ExactDeviceRequest type for use with
 // apply.
-func SpecificDeviceRequest() *SpecificDeviceRequestApplyConfiguration {
-	return &SpecificDeviceRequestApplyConfiguration{}
+func ExactDeviceRequest() *ExactDeviceRequestApplyConfiguration {
+	return &ExactDeviceRequestApplyConfiguration{}
 }
 
 // WithDeviceClassName sets the DeviceClassName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeviceClassName field is set to the value of the last call.
-func (b *SpecificDeviceRequestApplyConfiguration) WithDeviceClassName(value string) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithDeviceClassName(value string) *ExactDeviceRequestApplyConfiguration {
 	b.DeviceClassName = &value
 	return b
 }
@@ -50,7 +50,7 @@ func (b *SpecificDeviceRequestApplyConfiguration) WithDeviceClassName(value stri
 // WithSelectors adds the given value to the Selectors field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Selectors field.
-func (b *SpecificDeviceRequestApplyConfiguration) WithSelectors(values ...*DeviceSelectorApplyConfiguration) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithSelectors(values ...*DeviceSelectorApplyConfiguration) *ExactDeviceRequestApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithSelectors")
@@ -63,7 +63,7 @@ func (b *SpecificDeviceRequestApplyConfiguration) WithSelectors(values ...*Devic
 // WithAllocationMode sets the AllocationMode field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the AllocationMode field is set to the value of the last call.
-func (b *SpecificDeviceRequestApplyConfiguration) WithAllocationMode(value resourcev1beta2.DeviceAllocationMode) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithAllocationMode(value resourcev1beta2.DeviceAllocationMode) *ExactDeviceRequestApplyConfiguration {
 	b.AllocationMode = &value
 	return b
 }
@@ -71,7 +71,7 @@ func (b *SpecificDeviceRequestApplyConfiguration) WithAllocationMode(value resou
 // WithCount sets the Count field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Count field is set to the value of the last call.
-func (b *SpecificDeviceRequestApplyConfiguration) WithCount(value int64) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithCount(value int64) *ExactDeviceRequestApplyConfiguration {
 	b.Count = &value
 	return b
 }
@@ -79,7 +79,7 @@ func (b *SpecificDeviceRequestApplyConfiguration) WithCount(value int64) *Specif
 // WithAdminAccess sets the AdminAccess field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the AdminAccess field is set to the value of the last call.
-func (b *SpecificDeviceRequestApplyConfiguration) WithAdminAccess(value bool) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithAdminAccess(value bool) *ExactDeviceRequestApplyConfiguration {
 	b.AdminAccess = &value
 	return b
 }
@@ -87,7 +87,7 @@ func (b *SpecificDeviceRequestApplyConfiguration) WithAdminAccess(value bool) *S
 // WithTolerations adds the given value to the Tolerations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Tolerations field.
-func (b *SpecificDeviceRequestApplyConfiguration) WithTolerations(values ...*DeviceTolerationApplyConfiguration) *SpecificDeviceRequestApplyConfiguration {
+func (b *ExactDeviceRequestApplyConfiguration) WithTolerations(values ...*DeviceTolerationApplyConfiguration) *ExactDeviceRequestApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithTolerations")

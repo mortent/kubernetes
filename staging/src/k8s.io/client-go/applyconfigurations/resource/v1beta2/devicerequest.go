@@ -21,9 +21,9 @@ package v1beta2
 // DeviceRequestApplyConfiguration represents a declarative configuration of the DeviceRequest type for use
 // with apply.
 type DeviceRequestApplyConfiguration struct {
-	Name           *string                                  `json:"name,omitempty"`
-	Exactly        *SpecificDeviceRequestApplyConfiguration `json:"exactly,omitempty"`
-	FirstAvailable []DeviceSubRequestApplyConfiguration     `json:"firstAvailable,omitempty"`
+	Name           *string                               `json:"name,omitempty"`
+	Exactly        *ExactDeviceRequestApplyConfiguration `json:"exactly,omitempty"`
+	FirstAvailable []DeviceSubRequestApplyConfiguration  `json:"firstAvailable,omitempty"`
 }
 
 // DeviceRequestApplyConfiguration constructs a declarative configuration of the DeviceRequest type for use with
@@ -43,7 +43,7 @@ func (b *DeviceRequestApplyConfiguration) WithName(value string) *DeviceRequestA
 // WithExactly sets the Exactly field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Exactly field is set to the value of the last call.
-func (b *DeviceRequestApplyConfiguration) WithExactly(value *SpecificDeviceRequestApplyConfiguration) *DeviceRequestApplyConfiguration {
+func (b *DeviceRequestApplyConfiguration) WithExactly(value *ExactDeviceRequestApplyConfiguration) *DeviceRequestApplyConfiguration {
 	b.Exactly = value
 	return b
 }
