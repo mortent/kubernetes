@@ -125,6 +125,40 @@ func Convert_resource_DeviceRequest_To_v1beta1_DeviceRequest(in *resource.Device
 	return nil
 }
 
+func Convert_v1beta1_ResourceSliceSpec_To_resource_ResourceSliceSpec(in *resourcev1beta1.ResourceSliceSpec, out *resource.ResourceSliceSpec, s conversion.Scope) error {
+	if err := autoConvert_v1beta1_ResourceSliceSpec_To_resource_ResourceSliceSpec(in, out, s); err != nil {
+		return err
+	}
+	if in.NodeName == "" {
+		out.NodeName = nil
+	} else {
+		out.NodeName = &in.NodeName
+	}
+	if !in.AllNodes {
+		out.AllNodes = nil
+	} else {
+		out.AllNodes = &in.AllNodes
+	}
+	return nil
+}
+
+func Convert_resource_ResourceSliceSpec_To_v1beta1_ResourceSliceSpec(in *resource.ResourceSliceSpec, out *resourcev1beta1.ResourceSliceSpec, s conversion.Scope) error {
+	if err := autoConvert_resource_ResourceSliceSpec_To_v1beta1_ResourceSliceSpec(in, out, s); err != nil {
+		return err
+	}
+	if in.NodeName == nil {
+		out.NodeName = ""
+	} else {
+		out.NodeName = *in.NodeName
+	}
+	if in.AllNodes == nil {
+		out.AllNodes = false
+	} else {
+		out.AllNodes = *in.AllNodes
+	}
+	return nil
+}
+
 func Convert_v1beta1_Device_To_resource_Device(in *resourcev1beta1.Device, out *resource.Device, s conversion.Scope) error {
 	if err := autoConvert_v1beta1_Device_To_resource_Device(in, out, s); err != nil {
 		return err

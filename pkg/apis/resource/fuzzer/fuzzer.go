@@ -102,6 +102,9 @@ var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 			if r.AllNodes != nil && !*r.AllNodes {
 				r.AllNodes = nil
 			}
+			if r.NodeName != nil && *r.NodeName == "" {
+				r.NodeName = nil
+			}
 		},
 	}
 }
