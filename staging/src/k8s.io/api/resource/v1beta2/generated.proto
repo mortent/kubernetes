@@ -62,6 +62,8 @@ message AllocatedDeviceStatus {
   // If the device has been configured according to the class and claim
   // config references, the `Ready` condition should be True.
   //
+  // Must not contain more than 8 entries.
+  //
   // +optional
   // +listType=map
   // +listMapKey=type
@@ -225,7 +227,7 @@ message Device {
 
   // NodeName identifies the node where the device is available.
   //
-  // Must only be set if Spec.PerDeviceNodeSelection is set.
+  // Must only be set if Spec.PerDeviceNodeSelection is set to true.
   // At most one of NodeName, NodeSelector and AllNodes can be set.
   //
   // +optional
@@ -237,16 +239,17 @@ message Device {
   //
   // Must use exactly one term.
   //
-  // Must only be set if Spec.PerDeviceNodeSelection is set.
+  // Must only be set if Spec.PerDeviceNodeSelection is set to true.
   // At most one of NodeName, NodeSelector and AllNodes can be set.
   //
   // +optional
   // +oneOf=DeviceNodeSelection
+  // +featureGate=DRAPartitionableDevices
   optional .k8s.io.api.core.v1.NodeSelector nodeSelector = 6;
 
   // AllNodes indicates that all nodes have access to the device.
   //
-  // Must only be set if Spec.PerDeviceNodeSelection is set.
+  // Must only be set if Spec.PerDeviceNodeSelection is set to true.
   // At most one of NodeName, NodeSelector and AllNodes can be set.
   //
   // +optional
@@ -279,8 +282,8 @@ message DeviceAllocationConfiguration {
   // Requests lists the names of requests where the configuration applies.
   // If empty, its applies to all requests.
   //
-  // References to subrequests must include the name of both the main request
-  // and the subrequest using the format <main request>/<subrequest>. If just
+  // References to subrequests must include the name of the main request
+  // and may include the subrequest using the format <main request>[/<subrequest>]. If just
   // the main request is given, the configuration applies to all subrequests.
   //
   // +optional
@@ -377,8 +380,8 @@ message DeviceClaimConfiguration {
   // Requests lists the names of requests where the configuration applies.
   // If empty, it applies to all requests.
   //
-  // References to subrequests must include the name of both the main request
-  // and the subrequest using the format <main request>/<subrequest>. if just
+  // References to subrequests must include the name of the main request
+  // and may include the subrequest using the format <main request>[/<subrequest>]. If just
   // the main request is given, the configuration applies to all subrequests.
   //
   // +optional
@@ -465,8 +468,8 @@ message DeviceConstraint {
   // constraint. If this is not specified, this constraint applies to all
   // requests in this claim.
   //
-  // References to subrequests must include the name of both the main request
-  // and the subrequest using the format <main request>/<subrequest>. If just
+  // References to subrequests must include the name of the main request
+  // and may include the subrequest using the format <main request>[/<subrequest>]. If just
   // the main request is given, the constraint applies to all subrequests.
   //
   // +optional
@@ -538,9 +541,9 @@ message DeviceRequest {
   optional SpecificDeviceRequest exactly = 2;
 
   // FirstAvailable contains subrequests, of which exactly one will be
-  // satisfied by the scheduler to satisfy this request. It tries to
+  // selected by the scheduler. It tries to
   // satisfy them in the order in which they are listed here. So if
-  // there are two entries in the list, the schduler will only check
+  // there are two entries in the list, the scheduler will only check
   // the second one if it determines that the first one can not be used.
   //
   // DRA does not yet implement scoring, so the scheduler will
@@ -684,7 +687,7 @@ message DeviceSubRequest {
   //   Allocation will fail if some devices are already allocated,
   //   unless adminAccess is requested.
   //
-  // If AlloctionMode is not specified, the default mode is ExactCount. If
+  // If AllocationMode is not specified, the default mode is ExactCount. If
   // the mode is ExactCount and count is not specified, the default count is
   // one. Any other subrequests must specify this field.
   //
@@ -1118,7 +1121,7 @@ message ResourceSliceSpec {
   // new nodes of the same type as some old node might also make new
   // resources available.
   //
-  // Exactly one of NodeName, NodeSelector and AllNodes must be set.
+  // Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
   // This field is immutable.
   //
   // +optional
@@ -1130,7 +1133,7 @@ message ResourceSliceSpec {
   //
   // Must use exactly one term.
   //
-  // Exactly one of NodeName, NodeSelector and AllNodes must be set.
+  // Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
   //
   // +optional
   // +oneOf=NodeSelection
@@ -1138,7 +1141,7 @@ message ResourceSliceSpec {
 
   // AllNodes indicates that all nodes have access to the resources in the pool.
   //
-  // Exactly one of NodeName, NodeSelector and AllNodes must be set.
+  // Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
   //
   // +optional
   // +oneOf=NodeSelection
@@ -1157,8 +1160,7 @@ message ResourceSliceSpec {
   // device. If it is set to true, every device defined the ResourceSlice
   // must specify this individually.
   //
-  // Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection
-  // must be set.
+  // Exactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.
   //
   // +optional
   // +oneOf=NodeSelection
@@ -1184,10 +1186,7 @@ message SpecificDeviceRequest {
   // additional configuration and selectors to be inherited by this
   // request.
   //
-  // A DeviceClassName is required. Clients must check that it is
-  // indeed set. It's absence indicates that something changed in a way that
-  // is not supported by the client yet, in which case it must refuse to
-  // handle the request.
+  // A DeviceClassName is required.
   //
   // Administrators may use this to restrict which devices may get
   // requested by only installing classes with selectors for permitted
@@ -1215,10 +1214,11 @@ message SpecificDeviceRequest {
   //   count field.
   //
   // - All: This request is for all of the matching devices in a pool.
+  //   At least one device must exist on the node for the allocation to succeed.
   //   Allocation will fail if some devices are already allocated,
   //   unless adminAccess is requested.
   //
-  // If AlloctionMode is not specified, the default mode is ExactCount. If
+  // If AllocationMode is not specified, the default mode is ExactCount. If
   // the mode is ExactCount and count is not specified, the default count is
   // one. Any other requests must specify this field.
   //
@@ -1263,9 +1263,6 @@ message SpecificDeviceRequest {
   // claim will get deallocated.
   //
   // The maximum number of tolerations is 16.
-  //
-  // This field can only be set when deviceClassName is set and no subrequests
-  // are specified in the firstAvailable list.
   //
   // This is an alpha field and requires enabling the DRADeviceTaints
   // feature gate.
