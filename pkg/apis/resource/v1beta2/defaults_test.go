@@ -39,7 +39,7 @@ func TestSetDefaultAllocationMode(t *testing.T) {
 			Devices: v1beta2.DeviceClaim{
 				Requests: []v1beta2.DeviceRequest{
 					{
-						Exactly: &v1beta2.SpecificDeviceRequest{},
+						Exactly: &v1beta2.ExactDeviceRequest{},
 					},
 				},
 			},
@@ -60,7 +60,7 @@ func TestSetDefaultAllocationMode(t *testing.T) {
 		Spec: v1beta2.ResourceClaimSpec{
 			Devices: v1beta2.DeviceClaim{
 				Requests: []v1beta2.DeviceRequest{{
-					Exactly: &v1beta2.SpecificDeviceRequest{
+					Exactly: &v1beta2.ExactDeviceRequest{
 						AllocationMode: nonDefaultMode,
 						Count:          nonDefaultCount,
 					},

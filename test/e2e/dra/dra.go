@@ -2199,7 +2199,7 @@ func (b *builder) claimSpecWithV1beta2() resourceapiv1beta2.ResourceClaimSpec {
 		Devices: resourceapiv1beta2.DeviceClaim{
 			Requests: []resourceapiv1beta2.DeviceRequest{{
 				Name: "my-request",
-				Exactly: &resourceapiv1beta2.SpecificDeviceRequest{
+				Exactly: &resourceapiv1beta2.ExactDeviceRequest{
 					DeviceClassName: b.className(),
 				},
 			}},

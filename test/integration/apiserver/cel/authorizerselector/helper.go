@@ -169,7 +169,7 @@ func RunAuthzSelectorsLibraryTests(t *testing.T, featureEnabled bool) {
 						Devices: resourceapi.DeviceClaim{
 							Requests: []resourceapi.DeviceRequest{{
 								Name: "req-0",
-								Exactly: &resourceapi.SpecificDeviceRequest{
+								Exactly: &resourceapi.ExactDeviceRequest{
 									DeviceClassName: "example-class",
 									Selectors: []resourceapi.DeviceSelector{{
 										CEL: &resourceapi.CELDeviceSelector{

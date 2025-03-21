@@ -602,7 +602,7 @@ type DeviceRequest struct {
 	//
 	// +optional
 	// +oneOf=deviceRequestType
-	Exactly *SpecificDeviceRequest
+	Exactly *ExactDeviceRequest
 
 	// FirstAvailable contains subrequests, of which exactly one will be
 	// selected by the scheduler. It tries to
@@ -625,8 +625,8 @@ type DeviceRequest struct {
 	FirstAvailable []DeviceSubRequest
 }
 
-// SpecificDeviceRequest is a request for one or more identical devices.
-type SpecificDeviceRequest struct {
+// ExactDeviceRequest is a request for one or more identical devices.
+type ExactDeviceRequest struct {
 	// DeviceClassName references a specific DeviceClass, which can define
 	// additional configuration and selectors to be inherited by this
 	// request.
@@ -726,7 +726,7 @@ type SpecificDeviceRequest struct {
 // is typically a request for a single resource like a device, but can
 // also ask for several identical devices.
 //
-// DeviceSubRequest is similar to SpecificDeviceRequest, but doesn't expose the
+// DeviceSubRequest is similar to ExactDeviceRequest, but doesn't expose the
 // AdminAccess field as that one is only supported when requesting a
 // specific device.
 type DeviceSubRequest struct {

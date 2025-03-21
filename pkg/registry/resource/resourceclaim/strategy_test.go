@@ -43,7 +43,7 @@ var obj = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 					},
@@ -63,7 +63,7 @@ var objWithStatus = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 					},
@@ -97,7 +97,7 @@ var objWithAdminAccess = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 						AdminAccess:     ptr.To(true),
@@ -118,7 +118,7 @@ var objInNonAdminNamespace = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 					},
@@ -138,7 +138,7 @@ var objWithAdminAccessInNonAdminNamespace = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 						AdminAccess:     ptr.To(true),
@@ -159,7 +159,7 @@ var objStatusInNonAdminNamespace = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 					},
@@ -192,7 +192,7 @@ var objWithAdminAccessStatusInNonAdminNamespace = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 						AdminAccess:     ptr.To(true),
@@ -252,7 +252,7 @@ var objWithAdminAccessStatus = &resource.ResourceClaim{
 			Requests: []resource.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &resource.SpecificDeviceRequest{
+					Exactly: &resource.ExactDeviceRequest{
 						DeviceClassName: "class",
 						AllocationMode:  resource.DeviceAllocationModeAll,
 						AdminAccess:     ptr.To(true),

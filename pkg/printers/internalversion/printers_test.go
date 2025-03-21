@@ -6314,7 +6314,7 @@ func TestPrintResourceClaim(t *testing.T) {
 						Requests: []resourceapis.DeviceRequest{
 							{
 								Name: "deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClass",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,
@@ -6340,7 +6340,7 @@ func TestPrintResourceClaim(t *testing.T) {
 						Requests: []resourceapis.DeviceRequest{
 							{
 								Name: "deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClass",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,
@@ -6365,7 +6365,7 @@ func TestPrintResourceClaim(t *testing.T) {
 						Requests: []resourceapis.DeviceRequest{
 							{
 								Name: "deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClass",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,
@@ -6401,7 +6401,7 @@ func TestPrintResourceClaim(t *testing.T) {
 						Requests: []resourceapis.DeviceRequest{
 							{
 								Name: "deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClass",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,
@@ -6447,7 +6447,7 @@ func TestPrintResourceClaimTemplate(t *testing.T) {
 						Devices: resourceapis.DeviceClaim{
 							Requests: []resourceapis.DeviceRequest{{
 								Name: "test-deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClassName",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,
@@ -6472,7 +6472,7 @@ func TestPrintResourceClaimTemplate(t *testing.T) {
 						Devices: resourceapis.DeviceClaim{
 							Requests: []resourceapis.DeviceRequest{{
 								Name: "test-deviceRequest",
-								Exactly: &resourceapis.SpecificDeviceRequest{
+								Exactly: &resourceapis.ExactDeviceRequest{
 									DeviceClassName: "deviceClassName",
 									AllocationMode:  resourceapis.DeviceAllocationModeExactCount,
 									Count:           1,

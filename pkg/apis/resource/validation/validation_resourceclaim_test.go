@@ -60,7 +60,7 @@ var (
 		Devices: resource.DeviceClaim{
 			Requests: []resource.DeviceRequest{{
 				Name: goodName,
-				Exactly: &resource.SpecificDeviceRequest{
+				Exactly: &resource.ExactDeviceRequest{
 					DeviceClassName: goodName,
 					AllocationMode:  resource.DeviceAllocationModeExactCount,
 					Count:           1,
@@ -585,7 +585,7 @@ func TestValidateClaim(t *testing.T) {
 			claim: func() *resource.ResourceClaim {
 				claim := testClaim(goodName, goodNS, validClaimSpecWithFirstAvailable)
 
-				claim.Spec.Devices.Requests[0].Exactly = &resource.SpecificDeviceRequest{
+				claim.Spec.Devices.Requests[0].Exactly = &resource.ExactDeviceRequest{
 					DeviceClassName: goodName,
 					Selectors:       validSelector,
 					AllocationMode:  resource.DeviceAllocationModeExactCount,

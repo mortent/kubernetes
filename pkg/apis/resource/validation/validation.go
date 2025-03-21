@@ -188,7 +188,7 @@ func validateDeviceRequest(request resource.DeviceRequest, fldPath *field.Path, 
 
 	if request.Exactly != nil {
 		numDeviceRequestType++
-		allErrs = append(allErrs, validateSpecificDeviceRequest(*request.Exactly, fldPath.Child("exactly"), stored)...)
+		allErrs = append(allErrs, validateExactDeviceRequest(*request.Exactly, fldPath.Child("exactly"), stored)...)
 	}
 
 	switch numDeviceRequestType {
@@ -212,7 +212,7 @@ func validateDeviceSubRequest(subRequest resource.DeviceSubRequest, fldPath *fie
 	return allErrs
 }
 
-func validateSpecificDeviceRequest(request resource.SpecificDeviceRequest, fldPath *field.Path, stored bool) field.ErrorList {
+func validateExactDeviceRequest(request resource.ExactDeviceRequest, fldPath *field.Path, stored bool) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, validateDeviceClass(request.DeviceClassName, fldPath.Child("deviceClassName"))...)
 	allErrs = append(allErrs, validateSelectorSlice(request.Selectors, fldPath.Child("selectors"), stored)...)

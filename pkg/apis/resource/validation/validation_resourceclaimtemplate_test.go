@@ -195,7 +195,7 @@ func TestValidateClaimTemplate(t *testing.T) {
 			},
 			template: func() *resource.ResourceClaimTemplate {
 				template := testClaimTemplate(goodName, goodNS, validClaimSpecWithFirstAvailable)
-				template.Spec.Spec.Devices.Requests[0].Exactly = &resource.SpecificDeviceRequest{
+				template.Spec.Spec.Devices.Requests[0].Exactly = &resource.ExactDeviceRequest{
 					DeviceClassName: goodName,
 					AllocationMode:  resource.DeviceAllocationModeAll,
 				}

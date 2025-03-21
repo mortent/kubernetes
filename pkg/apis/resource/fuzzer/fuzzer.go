@@ -32,7 +32,7 @@ import (
 // leads to errors during roundtrip tests.
 var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(r *resource.SpecificDeviceRequest, c randfill.Continue) {
+		func(r *resource.ExactDeviceRequest, c randfill.Continue) {
 			c.FillNoCustom(r) // fuzz self without calling this function again
 
 			if r.AllocationMode == "" {

@@ -45,7 +45,7 @@ func TestResourceClaimEvaluatorUsage(t *testing.T) {
 			Requests: []api.DeviceRequest{
 				{
 					Name: "req-0",
-					Exactly: &api.SpecificDeviceRequest{
+					Exactly: &api.ExactDeviceRequest{
 						DeviceClassName: classGpu,
 						AllocationMode:  api.DeviceAllocationModeExactCount,
 						Count:           1,

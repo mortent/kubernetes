@@ -48,11 +48,11 @@ func Convert_v1beta1_DeviceRequest_To_resource_DeviceRequest(in *resourcev1beta1
 	if err := autoConvert_v1beta1_DeviceRequest_To_resource_DeviceRequest(in, out, s); err != nil {
 		return err
 	}
-	// If any fields on the main request is set, we create a SpecificDeviceRequest
+	// If any fields on the main request is set, we create a ExactDeviceRequest
 	// and set the Exactly field. It might be invalid but that will be caught in validation.
 	if hasAnyMainRequestFieldsSet(in) {
-		var specificDeviceRequest resource.SpecificDeviceRequest
-		specificDeviceRequest.DeviceClassName = in.DeviceClassName
+		var exactDeviceRequest resource.ExactDeviceRequest
+		exactDeviceRequest.DeviceClassName = in.DeviceClassName
 		if in.Selectors != nil {
 			selectors := make([]resource.DeviceSelector, 0, len(in.Selectors))
 			for i := range in.Selectors {
@@ -63,11 +63,11 @@ func Convert_v1beta1_DeviceRequest_To_resource_DeviceRequest(in *resourcev1beta1
 				}
 				selectors = append(selectors, selector)
 			}
-			specificDeviceRequest.Selectors = selectors
+			exactDeviceRequest.Selectors = selectors
 		}
-		specificDeviceRequest.AllocationMode = resource.DeviceAllocationMode(in.AllocationMode)
-		specificDeviceRequest.Count = in.Count
-		specificDeviceRequest.AdminAccess = in.AdminAccess
+		exactDeviceRequest.AllocationMode = resource.DeviceAllocationMode(in.AllocationMode)
+		exactDeviceRequest.Count = in.Count
+		exactDeviceRequest.AdminAccess = in.AdminAccess
 		var tolerations []resource.DeviceToleration
 		for _, e := range in.Tolerations {
 			var toleration resource.DeviceToleration
@@ -76,8 +76,8 @@ func Convert_v1beta1_DeviceRequest_To_resource_DeviceRequest(in *resourcev1beta1
 			}
 			tolerations = append(tolerations, toleration)
 		}
-		specificDeviceRequest.Tolerations = tolerations
-		out.Exactly = &specificDeviceRequest
+		exactDeviceRequest.Tolerations = tolerations
+		out.Exactly = &exactDeviceRequest
 	}
 	return nil
 }

@@ -65,7 +65,7 @@ func TestConversion(t *testing.T) {
 						Requests: []resource.DeviceRequest{
 							{
 								Name: "foo",
-								Exactly: &resource.SpecificDeviceRequest{
+								Exactly: &resource.ExactDeviceRequest{
 									DeviceClassName: "class-a",
 									Selectors: []resource.DeviceSelector{
 										{
@@ -91,7 +91,7 @@ func TestConversion(t *testing.T) {
 						Requests: []resource.DeviceRequest{
 							{
 								Name: "foo",
-								Exactly: &resource.SpecificDeviceRequest{
+								Exactly: &resource.ExactDeviceRequest{
 									DeviceClassName: "class-a",
 									Selectors: []resource.DeviceSelector{
 										{
