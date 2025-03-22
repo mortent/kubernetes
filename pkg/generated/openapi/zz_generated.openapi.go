@@ -47425,7 +47425,7 @@ func schema_k8sio_api_resource_v1alpha3_CounterSet(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name defines the name of the counter set. It must be a DNS label.",
+							Description: "CounterSet is the name of the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -47433,7 +47433,7 @@ func schema_k8sio_api_resource_v1alpha3_CounterSet(ref common.ReferenceCallback)
 					},
 					"counters": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nTo ensure this uniqueness, capacities defined by the vendor must be listed without the driver name as domain prefix in their name. All others must be listed with their domain prefix.\n\nThe maximum number of counters is 32.",
+							Description: "Counters defines the counters that will be consumed by the device. The name of each counter must be unique in that set and must be a DNS label.\n\nTo ensure this uniqueness, capacities defined by the vendor must be listed without the driver name as domain prefix in their name. All others must be listed with their domain prefix.\n\nThe maximum number of counters is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -50088,7 +50088,7 @@ func schema_k8sio_api_resource_v1beta1_DeviceCounterConsumption(ref common.Refer
 				Properties: map[string]spec.Schema{
 					"counterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CounterSet defines the set from which the counters defined will be consumed.",
+							Description: "CounterSet is the name of the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -50096,7 +50096,7 @@ func schema_k8sio_api_resource_v1beta1_DeviceCounterConsumption(ref common.Refer
 					},
 					"counters": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
+							Description: "Counters defines the counters that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -51988,7 +51988,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceCounterConsumption(ref common.Refer
 				Properties: map[string]spec.Schema{
 					"counterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CounterSet defines the set from which the counters defined will be consumed.",
+							Description: "CounterSet is the name of the set from which the counters defined will be consumed.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -51996,7 +51996,7 @@ func schema_k8sio_api_resource_v1beta2_DeviceCounterConsumption(ref common.Refer
 					},
 					"counters": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
+							Description: "Counters defines the counters that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,

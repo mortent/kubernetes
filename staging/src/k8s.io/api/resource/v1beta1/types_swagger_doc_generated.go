@@ -224,8 +224,8 @@ func (DeviceConstraint) SwaggerDoc() map[string]string {
 
 var map_DeviceCounterConsumption = map[string]string{
 	"":           "DeviceCounterConsumption defines a set of counters that a device will consume from a CounterSet.",
-	"counterSet": "CounterSet defines the set from which the counters defined will be consumed.",
-	"counters":   "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
+	"counterSet": "CounterSet is the name of the set from which the counters defined will be consumed.",
+	"counters":   "Counters defines the counters that will be consumed by the device.\n\nThe maximum number of Counters is 32.",
 }
 
 func (DeviceCounterConsumption) SwaggerDoc() map[string]string {

@@ -633,7 +633,7 @@
         "properties": {
           "counterSet": {
             "default": "",
-            "description": "CounterSet defines the set from which the counters defined will be consumed.",
+            "description": "CounterSet is the name of the set from which the counters defined will be consumed.",
             "type": "string"
           },
           "counters": {
@@ -645,7 +645,7 @@
               ],
               "default": {}
             },
-            "description": "Counters defines the Counter that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
+            "description": "Counters defines the counters that will be consumed by the device.\n\nThe maximum number of attributes, capacities and counters in a device is 32.",
             "type": "object"
           }
         },
