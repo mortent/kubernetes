@@ -341,15 +341,13 @@ type BasicDevice struct {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 type DeviceCounterConsumption struct {
-	// CounterSet defines the set from which the
+	// CounterSet is the name of the set from which the
 	// counters defined will be consumed.
 	//
 	// +required
 	CounterSet string `json:"counterSet" protobuf:"bytes,1,opt,name=counterSet"`
 
-	// Counters defines the Counter that will be consumed by
-	// the device.
-	//
+	// Counters defines the counters that will be consumed by the device.
 	//
 	// The maximum number of Counters is 32.
 	//

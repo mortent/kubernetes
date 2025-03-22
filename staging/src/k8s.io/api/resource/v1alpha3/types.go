@@ -178,13 +178,13 @@ type ResourceSliceSpec struct {
 // the portion of counters it uses will no longer be available for use
 // by other devices.
 type CounterSet struct {
-	// Name defines the name of the counter set.
-	// It must be a DNS label.
+	// CounterSet is the name of the set from which the
+	// counters defined will be consumed.
 	//
 	// +required
 	Name string `json:"name" protobuf:"bytes,1,name=name"`
 
-	// Counters defines the set of counters for this CounterSet
+	// Counters defines the counters that will be consumed by the device.
 	// The name of each counter must be unique in that set and must be a DNS label.
 	//
 	// To ensure this uniqueness, capacities defined by the vendor

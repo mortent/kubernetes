@@ -238,23 +238,6 @@ const PoolNameMaxLength = validation.DNS1123SubdomainMaxLength // Same as for a 
 // in a ResourceSlice. The number is summed up across all sets.
 const ResourceSliceMaxSharedCounters = 32
 
-// Defines the max number of Counters from which a device
-// can consume. This is used to validate the fields:
-// * spec.devices[].consumesCounters
-const ResourceSliceMaxDeviceCounterConsumptions = 32
-
-// Defines the max number of counters
-// that can be specified for sharedCounters in a ResourceSlice.
-// This is used to validate the fields:
-// * spec.sharedCounters[].counters
-const ResourceSliceMaxSharedCountersCounters = 32
-
-// Defines the max number of counters
-// that can be specified for consumesCounters in a ResourceSlice.
-// This is used to validate the fields:
-// * spec.devices[].consumesCounters[].counters
-const ResourceSliceMaxDeviceCounterConsumptionCounters = 32
-
 // Device represents one individual hardware instance that can be selected based
 // on its attributes. Besides the name, exactly one field must be set.
 type Device struct {
@@ -341,14 +324,13 @@ type Device struct {
 // DeviceCounterConsumption defines a set of counters that
 // a device will consume from a CounterSet.
 type DeviceCounterConsumption struct {
-	// CounterSet defines the set from which the
+	// CounterSet is the name of the set from which the
 	// counters defined will be consumed.
 	//
 	// +required
 	CounterSet string
 
-	// Counters defines the Counter that will be consumed by
-	// the device.
+	// Counters defines the counters that will be consumed by the device.
 	//
 	// The maximum number of attributes, capacities and counters in a device is 32.
 	//
