@@ -18,15 +18,21 @@ package validation
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
+	resourceapiv1beta2 "k8s.io/api/resource/v1beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/core"
 	resourceapi "k8s.io/kubernetes/pkg/apis/resource"
 	"k8s.io/utils/ptr"
+
+	_ "k8s.io/kubernetes/pkg/apis/resource/install"
 )
 
 func testAttributes() map[resourceapi.QualifiedName]resourceapi.DeviceAttribute {
@@ -523,6 +529,21 @@ func TestValidateResourceSlice(t *testing.T) {
 				return slice
 			}(),
 		},
+		"too-many-taints": {
+			wantFailures: field.ErrorList{
+				field.TooMany(field.NewPath("spec", "devices").Index(0).Child("taints"), resourceapi.DeviceTaintsMaxLength+1, resourceapi.DeviceTaintsMaxLength),
+			},
+			slice: func() *resourceapi.ResourceSlice {
+				slice := testResourceSlice(goodName, goodName, driverName, 1)
+				for i := 0; i < resourceapi.DeviceTaintsMaxLength+1; i++ {
+					slice.Spec.Devices[0].Taints = append(slice.Spec.Devices[0].Taints, resourceapi.DeviceTaint{
+						Key:    "example.com/taint",
+						Effect: resourceapi.DeviceTaintEffectNoExecute,
+					})
+				}
+				return slice
+			}(),
+		},
 		"bad-PerDeviceNodeSelection": {
 			wantFailures: field.ErrorList{
 				field.Invalid(field.NewPath("spec"), "{`nodeName`, `perDeviceNodeSelection`}", "exactly one of `nodeName`, `nodeSelector`, `allNodes`, `perDeviceNodeSelection` is required, but multiple fields are set"),
@@ -895,4 +916,87 @@ func createConsumesCounters(count int) []resourceapi.DeviceCounterConsumption {
 		}
 	}
 	return consumeCapacity
+}
+
+func TestResourceSliceSpecSize(t *testing.T) {
+	resourceSliceSpec := &resourceapi.ResourceSliceSpec{
+		Driver: strings.Repeat("x", resourceapi.DriverNameMaxLength),
+		Pool: resourceapi.ResourcePool{
+			Name:               strings.Repeat("x", resourceapi.PoolNameMaxLength),
+			Generation:         math.MaxInt64,
+			ResourceSliceCount: math.MaxInt64,
+		},
+		// use PerDeviceNodeSelection as it requires setting the node selection on
+		// every device and therefore will be the most expensive option in terms of
+		// object size.
+		PerDeviceNodeSelection: ptr.To(true),
+		// The validation caps the total number of counters across all CounterSets. So
+		// the most expensive option is to have a single counter per CounterSet.
+		SharedCounters: func() []resourceapi.CounterSet {
+			var counterSets []resourceapi.CounterSet
+			for i := 0; i < resourceapi.ResourceSliceMaxSharedCounters; i++ {
+				counterSets = append(counterSets, resourceapi.CounterSet{
+					Name: strings.Repeat("x", validation.DNS1123LabelMaxLength-2) + fmt.Sprintf("%02d", i),
+					Counters: map[string]resourceapi.Counter{
+						strings.Repeat("x", validation.DNS1123LabelMaxLength): {
+							Value: resource.MustParse("80Gi"),
+						},
+					},
+				})
+			}
+			return counterSets
+		}(),
+		Devices: func() []resourceapi.Device {
+			var devices []resourceapi.Device
+			for i := 0; i < resourceapi.ResourceSliceMaxDevices; i++ {
+				devices = append(devices, resourceapi.Device{
+					Name: strings.Repeat("x", validation.DNS1123LabelMaxLength-3) + fmt.Sprintf("%03d", i),
+					// Don't include any attributes or capacities. We want to use all our quota
+					// for the ConsumesCounters entries, as those are the most expensive.
+					ConsumesCounters: func() []resourceapi.DeviceCounterConsumption {
+						var consumesCounters []resourceapi.DeviceCounterConsumption
+						for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
+							consumesCounters = append(consumesCounters, resourceapi.DeviceCounterConsumption{
+								CounterSet: strings.Repeat("x", validation.DNS1123LabelMaxLength-2) + fmt.Sprintf("%02d", i),
+								Counters: map[string]resourceapi.Counter{
+									strings.Repeat("x", validation.DNS1123LabelMaxLength): {
+										Value: resource.MustParse("80Gi"),
+									},
+								},
+							})
+						}
+						return consumesCounters
+					}(),
+					NodeName: ptr.To(strings.Repeat("x", validation.DNS1123SubdomainMaxLength)),
+					Taints: func() []resourceapi.DeviceTaint {
+						var taints []resourceapi.DeviceTaint
+						for i := 0; i < resourceapi.DeviceTaintsMaxLength; i++ {
+							taints = append(taints, resourceapi.DeviceTaint{
+								Key:       strings.Repeat("x", validation.DNS1123SubdomainMaxLength-4) + ".com/" + strings.Repeat("x", 63),
+								Value:     strings.Repeat("x", validation.LabelValueMaxLength),
+								Effect:    resourceapi.DeviceTaintEffectNoSchedule,
+								TimeAdded: ptr.To(metav1.Now()),
+							})
+						}
+						return taints
+					}(),
+				})
+			}
+			return devices
+		}(),
+	}
+
+	errs := validateResourceSliceSpec(resourceSliceSpec, nil, field.NewPath("spec"))
+	assertFailures(t, nil, errs)
+
+	v1beta2ResourceSliceSpec := &resourceapiv1beta2.ResourceSliceSpec{}
+	err := legacyscheme.Scheme.Convert(resourceSliceSpec, v1beta2ResourceSliceSpec, nil)
+	if err != nil {
+		t.Errorf("Failed to convert ResourceSliceSpec from internal to v1beta2: %v", err)
+	}
+	specSize := v1beta2ResourceSliceSpec.Size()
+	latestResourceSliceSpecSize := 1060218
+	if specSize > latestResourceSliceSpecSize {
+		t.Errorf("Size of ResourceSliceSpec has increased. Expected %d, but got %d", latestResourceSliceSpecSize, specSize)
+	}
 }

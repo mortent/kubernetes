@@ -718,9 +718,7 @@ func validateDevice(device resource.Device, fldPath *field.Path, sharedCounterTo
 
 	allErrs = append(allErrs, validateMap(device.Attributes, -1, attributeAndCapacityMaxKeyLength, validateQualifiedName, validateDeviceAttribute, fldPath.Child("attributes"))...)
 	allErrs = append(allErrs, validateMap(device.Capacity, -1, attributeAndCapacityMaxKeyLength, validateQualifiedName, validateDeviceCapacity, fldPath.Child("capacity"))...)
-	for i, taint := range device.Taints {
-		allErrs = append(allErrs, validateDeviceTaint(taint, fldPath.Child("taints").Index(i))...)
-	}
+	allErrs = append(allErrs, validateSlice(device.Taints, resource.DeviceTaintsMaxLength, validateDeviceTaint, fldPath.Child("taints"))...)
 
 	allErrs = append(allErrs, validateSet(device.ConsumesCounters, -1,
 		validateDeviceCounterConsumption,
