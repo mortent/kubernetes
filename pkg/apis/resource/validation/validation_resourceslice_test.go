@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	resourceapiv1beta2 "k8s.io/api/resource/v1beta2"
+	resourceapiv1beta1 "k8s.io/api/resource/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -989,13 +989,14 @@ func TestResourceSliceSpecSize(t *testing.T) {
 	errs := validateResourceSliceSpec(resourceSliceSpec, nil, field.NewPath("spec"))
 	assertFailures(t, nil, errs)
 
-	v1beta2ResourceSliceSpec := &resourceapiv1beta2.ResourceSliceSpec{}
-	err := legacyscheme.Scheme.Convert(resourceSliceSpec, v1beta2ResourceSliceSpec, nil)
+	// v1beta1 is the storage version.
+	v1beta1ResourceSliceSpec := &resourceapiv1beta1.ResourceSliceSpec{}
+	err := legacyscheme.Scheme.Convert(resourceSliceSpec, v1beta1ResourceSliceSpec, nil)
 	if err != nil {
-		t.Errorf("Failed to convert ResourceSliceSpec from internal to v1beta2: %v", err)
+		t.Errorf("Failed to convert ResourceSliceSpec from internal to v1beta1: %v", err)
 	}
-	specSize := v1beta2ResourceSliceSpec.Size()
-	latestResourceSliceSpecSize := 1060218
+	specSize := v1beta1ResourceSliceSpec.Size()
+	latestResourceSliceSpecSize := 1060606
 	if specSize > latestResourceSliceSpecSize {
 		t.Errorf("Size of ResourceSliceSpec has increased. Expected %d, but got %d", latestResourceSliceSpecSize, specSize)
 	}
