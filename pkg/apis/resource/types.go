@@ -357,8 +357,16 @@ type Counter struct {
 	Value resource.Quantity
 }
 
-// Limit for the sum of the number of entries in attributes, capacity, counters.
-const ResourceSliceMaxAttributesCapacitiesCountersPerDevice = 32
+// Limit for the sum of the number of entries in attributes, capacity.
+const ResourceSliceMaxAttributesAndCapacitiesPerDevice = 32
+
+// Limit for the sum of the number of counters in each device.
+const ResourceSliceMaxCountersPerDevice = 32
+
+// Limit for the sum of the number of counters defined in devices in
+// a ResourceSlice. We want to allow up to 64 devices to specify
+// up to 16 counters, so the limit for the ResourceSlice will be 1024.
+const ResourceSliceMaxDeviceCountersPerSlice = 1024 // 64 * 16
 
 // QualifiedName is the name of a device attribute or capacity.
 //
@@ -423,7 +431,7 @@ type DeviceAttribute struct {
 const DeviceAttributeMaxValueLength = 64
 
 // DeviceTaintsMaxLength is the maximum number of taints per device.
-const DeviceTaintsMaxLength = 8
+const DeviceTaintsMaxLength = 4
 
 // The device this taint is attached to has the "effect" on
 // any claim which does not tolerate the taint and, through the claim,

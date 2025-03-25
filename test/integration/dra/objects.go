@@ -75,11 +75,19 @@ func NewMaxResourceSlice() *resourceapi.ResourceSlice {
 				for i := 0; i < resourceapi.ResourceSliceMaxDevices; i++ {
 					devices = append(devices, resourceapi.Device{
 						Name: maxDNSLabel(i),
-						// Don't include any attributes or capacities. We want to use all our quota
-						// for the ConsumesCounters entries, as those are the most expensive.
+						// Use attributes rather than capacity since it is more expensive.
+						Attributes: func() map[resourceapi.QualifiedName]resourceapi.DeviceAttribute {
+							attributes := make(map[resourceapi.QualifiedName]resourceapi.DeviceAttribute)
+							for i := 0; i < resourceapi.ResourceSliceMaxAttributesAndCapacitiesPerDevice; i++ {
+								attributes[maxResourceQualifiedName(i)] = resourceapi.DeviceAttribute{
+									StringValue: ptr.To(maxDNSLabel(i)),
+								}
+							}
+							return attributes
+						}(),
 						ConsumesCounters: func() []resourceapi.DeviceCounterConsumption {
 							var consumesCounters []resourceapi.DeviceCounterConsumption
-							for i := 0; i < resourceapi.ResourceSliceMaxAttributesCapacitiesCountersPerDevice; i++ {
+							for i := 0; i < resourceapi.ResourceSliceMaxDeviceCountersPerSlice/resourceapi.ResourceSliceMaxDevices; i++ {
 								consumesCounters = append(consumesCounters, resourceapi.DeviceCounterConsumption{
 									CounterSet: maxDNSLabel(i),
 									Counters: map[string]resourceapi.Counter{
@@ -91,7 +99,7 @@ func NewMaxResourceSlice() *resourceapi.ResourceSlice {
 							}
 							return consumesCounters
 						}(),
-						NodeName: ptr.To(strings.Repeat("x", validation.DNS1123SubdomainMaxLength)),
+						NodeName: ptr.To(maxSubDomain(0)),
 						Taints: func() []resourceapi.DeviceTaint {
 							var taints []resourceapi.DeviceTaint
 							for i := 0; i < resourceapi.DeviceTaintsMaxLength; i++ {
@@ -125,6 +133,10 @@ func maxKeyValueMap(n int) map[string]string {
 func maxLabelName(i int) string {
 	// A "label" is a qualified name.
 	return maxQualifiedName(i)
+}
+
+func maxResourceQualifiedName(i int) resourceapi.QualifiedName {
+	return resourceapi.QualifiedName(maxString(i, resourceapi.DeviceMaxDomainLength) + "/" + maxString(i, resourceapi.DeviceMaxIDLength))
 }
 
 func maxQualifiedName(i int) string {

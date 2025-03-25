@@ -363,6 +363,8 @@ func testPublishResourceSlices(tCtx ktesting.TContext) {
 								Name: "device-tainted-default",
 								Basic: &resourceapi.BasicDevice{
 									Taints: []resourceapi.DeviceTaint{{
+										Key:    "dra.example.com/taint",
+										Value:  "taint-value",
 										Effect: resourceapi.DeviceTaintEffectNoExecute,
 										// TimeAdded is added by apiserver.
 									}},
@@ -372,6 +374,8 @@ func testPublishResourceSlices(tCtx ktesting.TContext) {
 								Name: "device-tainted-time-added",
 								Basic: &resourceapi.BasicDevice{
 									Taints: []resourceapi.DeviceTaint{{
+										Key:       "dra.example.com/taint",
+										Value:     "taint-value",
 										Effect:    resourceapi.DeviceTaintEffectNoExecute,
 										TimeAdded: ptr.To(metav1.Now()),
 									}},
