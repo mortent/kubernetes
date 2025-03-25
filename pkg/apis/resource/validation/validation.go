@@ -672,7 +672,7 @@ func validateCounterSet(counterSet resource.CounterSet, fldPath *field.Path) fie
 		allErrs = append(allErrs, field.Required(fldPath.Child("counters"), ""))
 	} else {
 		// The size limit is enforced for across all sets by the caller.
-		allErrs = append(allErrs, validateMap(counterSet.Counters, -1, attributeAndCapacityMaxKeyLength,
+		allErrs = append(allErrs, validateMap(counterSet.Counters, -1, validation.DNS1123LabelMaxLength,
 			validateCounterName, validateDeviceCounter, fldPath.Child("counters"))...)
 	}
 
@@ -785,7 +785,7 @@ func validateDeviceCounterConsumption(deviceCounterConsumption resource.DeviceCo
 		allErrs = append(allErrs, field.Required(fldPath.Child("counters"), ""))
 	} else {
 		// The size limit is enforced for the entire device.
-		allErrs = append(allErrs, validateMap(deviceCounterConsumption.Counters, -1, attributeAndCapacityMaxKeyLength,
+		allErrs = append(allErrs, validateMap(deviceCounterConsumption.Counters, -1, validation.DNS1123LabelMaxLength,
 			validateCounterName, validateDeviceCounter, fldPath.Child("counters"))...)
 	}
 	return allErrs
