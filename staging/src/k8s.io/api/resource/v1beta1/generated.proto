@@ -120,9 +120,10 @@ message BasicDevice {
   //
   // There can only be a single entry per counterSet.
   //
-  // The maximum number of device counter consumption entries
-  // is 32. This is the same as the maximum number of shared counters
-  // allowed in a ResourceSlice.
+  // The total number of device counter consumption entries
+  // must be <= 32. In addition, the total number in the
+  // entire ResourceSlice must be <= 1024 (for example,
+  // 64 devices with 16 counters each).
   //
   // +optional
   // +listType=atomic

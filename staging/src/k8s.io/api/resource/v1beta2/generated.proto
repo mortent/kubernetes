@@ -216,7 +216,10 @@ message Device {
   //
   // There can only be a single entry per counterSet.
   //
-  // The maximum number of attributes, capacities and counters combined is 32.
+  // The total number of device counter consumption entries
+  // must be <= 32. In addition, the total number in the
+  // entire ResourceSlice must be <= 1024 (for example,
+  // 64 devices with 16 counters each).
   //
   // +optional
   // +listType=atomic

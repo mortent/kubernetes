@@ -272,7 +272,10 @@ type Device struct {
 	//
 	// There can only be a single entry per counterSet.
 	//
-	// The maximum number of attributes, capacities and counters combined is 32.
+	// The total number of device counter consumption entries
+	// must be <= 32. In addition, the total number in the
+	// entire ResourceSlice must be <= 1024 (for example,
+	// 64 devices with 16 counters each).
 	//
 	// +optional
 	// +listType=atomic
@@ -363,10 +366,10 @@ type Counter struct {
 // Limit for the sum of the number of entries in attributes, capacity.
 const ResourceSliceMaxAttributesAndCapacitiesPerDevice = 32
 
-// Limit for the sum of the number of counters in each device.
+// Limit for the total number of counters in each device.
 const ResourceSliceMaxCountersPerDevice = 32
 
-// Limit for the sum of the number of counters defined in devices in
+// Limit for the total number of counters defined in devices in
 // a ResourceSlice. We want to allow up to 64 devices to specify
 // up to 16 counters, so the limit for the ResourceSlice will be 1024.
 const ResourceSliceMaxDeviceCountersPerSlice = 1024 // 64 * 16
