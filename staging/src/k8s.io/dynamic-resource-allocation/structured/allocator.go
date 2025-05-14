@@ -482,7 +482,7 @@ type allocator struct {
 	deviceMatchesRequest map[matchKey]bool
 	constraints          [][]constraint // one list of constraints per claim
 	// consumedCounters keeps track of the counters consumed by all devices
-	// the is in the process of being allocated.
+	// that are in the process of being allocated.
 	consumedCounters map[draapi.UniqueString]counterSets
 	requestData      map[requestIndices]requestData // one entry per request with no subrequests and one entry per subrequest
 	// allocatingDevices tracks which devices will be newly allocated for a
@@ -1008,18 +1008,24 @@ func (alloc *allocator) allocateDevice(r deviceIndices, device deviceWithID, mus
 		return false, nil, nil
 	}
 
-	// The API validation logic has checked the ConsumesCounters referred should exist inside SharedCounters.
-	if alloc.features.PartitionableDevices && len(device.basic.ConsumesCounters) > 0 {
-		// If a device consumes counters from counter sets, verify that
-		// there is sufficient counters available.
-		ok, err := alloc.checkAvailableCounters(device)
-		if err != nil {
-			return false, nil, err
-		}
-		if !ok {
-			alloc.logger.V(7).Info("Insufficient capacity", "device", device.id)
-			return false, nil, nil
-		}
+	// If a device is using the partitionable devices feature is encountered and the feature
+	// is not enabled, we skip the device.
+	// We should never experience this situation because ResourceSlices that has the
+	// sharedCounters field set are filtered out when we fetch the pools. And devices can't
+	// specify consumesCounters without referencing a counter set.
+	if len(device.basic.ConsumesCounters) > 0 && !alloc.features.PartitionableDevices {
+		return false, nil, nil
+	}
+
+	// If a device consumes counters from counter sets, verify that
+	// the counter does not become negative.
+	ok, err := alloc.checkAvailableCounters(device)
+	if err != nil {
+		return false, nil, err
+	}
+	if !ok {
+		alloc.logger.V(7).Info("Insufficient counters available", "device", device.id)
+		return false, nil, nil
 	}
 
 	var parentRequestName string
@@ -1113,6 +1119,9 @@ func taintTolerated(taint resourceapi.DeviceTaint, request requestAccessor) bool
 
 // checkAvailableCounters checks if there are enough counters available to allocate
 // the specified device.
+//
+// Gets called only if the partitionable devices feature is enabled and the device
+// consumes counters.
 func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error) {
 	slice := device.slice
 	sliceName := draapi.MakeUniqueString(slice.Name)
@@ -1137,16 +1146,17 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 			availableCountersForSlice[counterSet.Name] = availableCountersForCounterSet
 		}
 
-		// Update the data structure to reflect counters already consumed by allocated devices.
+		// Update the data structure to reflect counters already consumed by allocated devices. This
+		// only includes devices where the allocation process has completed, so this will never
+		// change during the allocation process.
 		for _, device := range slice.Spec.Devices {
 			deviceID := DeviceID{
 				Driver: slice.Spec.Driver,
 				Pool:   slice.Spec.Pool.Name,
 				Device: device.Name,
 			}
-			// No devices can be in the allocating state when this is computed. The counters
-			// consumed by any devices in the allocating state will be tracked in the
-			// consumedCounters data structure.
+			// Devices that aren't allocated doesn't consume any counters, so we don't
+			// need to consider them.
 			if !alloc.allocatedDevices.Has(deviceID) {
 				continue
 			}
@@ -1164,6 +1174,9 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 					availableCountersForCounterSet[name] = existingCounter
 				}
 			}
+			// Note that we don't include devices in the alloc.allocatingDevices here since
+			// counters consumed by devices for the current claims are tracked in
+			// alloc.consumedCounters
 		}
 
 		// Set the available counters on the allocator so we don't have to
