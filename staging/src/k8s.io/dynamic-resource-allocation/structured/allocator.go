@@ -494,9 +494,14 @@ type allocator struct {
 	result            []internalAllocationResult
 }
 
+type counterSetCounter struct {
+	counterSetName draapi.UniqueString
+	counterName    draapi.UniqueString
+}
+
 // counterSets is a map with the name of counter sets to the counters in
 // the set.
-type counterSets map[draapi.UniqueString]map[string]draapi.Counter
+type counterSets map[counterSetCounter]draapi.Counter
 
 // matchKey identifies a device/request pair.
 type matchKey struct {
@@ -1139,11 +1144,12 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 	if !found {
 		availableCountersForSlice = make(counterSets)
 		for _, counterSet := range slice.Spec.SharedCounters {
-			availableCountersForCounterSet := make(map[string]draapi.Counter, len(counterSet.Counters))
 			for name, c := range counterSet.Counters {
-				availableCountersForCounterSet[name] = c
+				availableCountersForSlice[counterSetCounter{
+					counterSetName: counterSet.Name,
+					counterName:    draapi.MakeUniqueString(name),
+				}] = c
 			}
-			availableCountersForSlice[counterSet.Name] = availableCountersForCounterSet
 		}
 
 		// Update the data structure to reflect counters already consumed by allocated devices. This
@@ -1161,9 +1167,12 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 				continue
 			}
 			for _, deviceCounterConsumption := range device.Basic.ConsumesCounters {
-				availableCountersForCounterSet := availableCountersForSlice[deviceCounterConsumption.CounterSet]
 				for name, c := range deviceCounterConsumption.Counters {
-					existingCounter, ok := availableCountersForCounterSet[name]
+					csc := counterSetCounter{
+						counterSetName: deviceCounterConsumption.CounterSet,
+						counterName:    draapi.MakeUniqueString(name),
+					}
+					existingCounter, ok := availableCountersForSlice[csc]
 					if !ok {
 						// the API validation logic has been added to make sure the counters referred should exist in counter sets.
 						continue
@@ -1171,7 +1180,7 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 					// This can potentially result in negative available counters. That is fine,
 					// we just treat it as no counters available.
 					existingCounter.Value.Sub(c.Value)
-					availableCountersForCounterSet[name] = existingCounter
+					availableCountersForSlice[csc] = existingCounter
 				}
 			}
 			// Note that we don't include devices in the alloc.allocatingDevices here since
@@ -1196,36 +1205,34 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 		alloc.consumedCounters[sliceName] = consumedCountersForSlice
 	}
 	for _, deviceCounterConsumption := range device.basic.ConsumesCounters {
-		consumedCountersForCounterSet, found := consumedCountersForSlice[deviceCounterConsumption.CounterSet]
-		if !found {
-			consumedCountersForCounterSet = make(map[string]draapi.Counter)
-			consumedCountersForSlice[deviceCounterConsumption.CounterSet] = consumedCountersForCounterSet
-		}
 		for name, c := range deviceCounterConsumption.Counters {
-			consumedCounters, found := consumedCountersForCounterSet[name]
+			csc := counterSetCounter{
+				counterSetName: deviceCounterConsumption.CounterSet,
+				counterName:    draapi.MakeUniqueString(name),
+			}
+			consumedCounters, found := consumedCountersForSlice[csc]
 			if !found {
-				consumedCountersForCounterSet[name] = c
+				consumedCountersForSlice[csc] = c
 				continue
 			}
 			consumedCounters.Value.Add(c.Value)
-			consumedCountersForCounterSet[name] = consumedCounters
+			consumedCountersForSlice[csc] = consumedCounters
 		}
 	}
 
 	// Check that we didn't exceed the availability of any counters by allocating
 	// the current device. If we did, the current set of devices doesn't work, so we
 	// update the consumed counters to no longer reflect the current device.
-	for availableCounterSetName, availableCounters := range availableCountersForSlice {
-		consumedCounters := consumedCountersForSlice[availableCounterSetName]
-		for availableCounterName, availableCounter := range availableCounters {
-			consumedCounter := consumedCounters[availableCounterName]
-			if availableCounter.Value.Cmp(consumedCounter.Value) < 0 {
-				alloc.deallocateCountersForDevice(device)
-				return false, nil
-			}
+	for availableCounterSetCounter, availableCounter := range availableCountersForSlice {
+		consumedCounter, found := consumedCountersForSlice[availableCounterSetCounter]
+		if !found {
+			continue
+		}
+		if availableCounter.Value.Cmp(consumedCounter.Value) < 0 {
+			alloc.deallocateCountersForDevice(device)
+			return false, nil
 		}
 	}
-
 	return true, nil
 }
 
@@ -1249,12 +1256,14 @@ func (alloc *allocator) deallocateCountersForDevice(device deviceWithID) {
 
 	consumedCountersForSlice := alloc.consumedCounters[sliceName]
 	for _, deviceCounterConsumption := range device.basic.ConsumesCounters {
-		counterSetName := deviceCounterConsumption.CounterSet
-		consumedCounterSet := consumedCountersForSlice[counterSetName]
 		for name, c := range deviceCounterConsumption.Counters {
-			consumedCounter := consumedCounterSet[name]
+			csc := counterSetCounter{
+				counterSetName: deviceCounterConsumption.CounterSet,
+				counterName:    draapi.MakeUniqueString(name),
+			}
+			consumedCounter := consumedCountersForSlice[csc]
 			consumedCounter.Value.Sub(c.Value)
-			consumedCounterSet[name] = consumedCounter
+			consumedCountersForSlice[csc] = consumedCounter
 		}
 	}
 }
