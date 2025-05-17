@@ -1195,32 +1195,49 @@ func (alloc *allocator) checkAvailableCounters(device deviceWithID) (bool, error
 		consumedCountersForSlice = make(counterSets)
 		alloc.consumedCounters[sliceName] = consumedCountersForSlice
 	}
+	updatedCounters := make(counterSets)
 	for _, deviceCounterConsumption := range device.basic.ConsumesCounters {
+		availableCountersForCounterSet, found := availableCountersForSlice[deviceCounterConsumption.CounterSet]
+		if !found {
+			// This should not happen since validation makes sure that all consumed counters point
+			// to an existing counter set.
+			continue
+		}
 		consumedCountersForCounterSet, found := consumedCountersForSlice[deviceCounterConsumption.CounterSet]
 		if !found {
 			consumedCountersForCounterSet = make(map[string]draapi.Counter)
 			consumedCountersForSlice[deviceCounterConsumption.CounterSet] = consumedCountersForCounterSet
 		}
+		updatedCountersForCounterSet := make(map[string]draapi.Counter)
+		updatedCounters[deviceCounterConsumption.CounterSet] = updatedCountersForCounterSet
 		for name, c := range deviceCounterConsumption.Counters {
-			consumedCounters, found := consumedCountersForCounterSet[name]
+			consumedCounter, found := consumedCountersForCounterSet[name]
 			if !found {
+				consumedCounter = c
 				consumedCountersForCounterSet[name] = c
+			} else {
+				consumedCounter.Value.Add(c.Value)
+				consumedCountersForCounterSet[name] = consumedCounter
+			}
+			// We can only have a single entry for each counter per counter set.
+			updatedCountersForCounterSet[name] = c
+
+			availableCounter, found := availableCountersForCounterSet[name]
+			if !found {
+				// Should have been caught in validation.
 				continue
 			}
-			consumedCounters.Value.Add(c.Value)
-			consumedCountersForCounterSet[name] = consumedCounters
-		}
-	}
-
-	// Check that we didn't exceed the availability of any counters by allocating
-	// the current device. If we did, the current set of devices doesn't work, so we
-	// update the consumed counters to no longer reflect the current device.
-	for availableCounterSetName, availableCounters := range availableCountersForSlice {
-		consumedCounters := consumedCountersForSlice[availableCounterSetName]
-		for availableCounterName, availableCounter := range availableCounters {
-			consumedCounter := consumedCounters[availableCounterName]
 			if availableCounter.Value.Cmp(consumedCounter.Value) < 0 {
-				alloc.deallocateCountersForDevice(device)
+				// Ooops, there weren't sufficient counters available to allocate this device
+				// Lets clean it up.
+				for counterSet, updatedCountersForCounterSet := range updatedCounters {
+					consumedCountersForCounterSet := consumedCountersForSlice[counterSet]
+					for name, c := range updatedCountersForCounterSet {
+						consumedCounter := consumedCountersForCounterSet[name]
+						consumedCounter.Value.Sub(c.Value)
+						consumedCountersForCounterSet[name] = consumedCounter
+					}
+				}
 				return false, nil
 			}
 		}
