@@ -3148,6 +3148,389 @@ func TestAllocator(t *testing.T) {
 				claim0: 4,
 			},
 		},
+		"partitionable-devices-scenario-1": {
+			features: Features{
+				PartitionableDevices: true,
+			},
+			claimsToAllocate: objects(
+				claimWithRequests(claim0, nil,
+					request(req0, classA, 7),
+					request(req1, classA, 1, resourceapi.DeviceSelector{
+						CEL: &resourceapi.CELDeviceSelector{
+							Expression: fmt.Sprintf(`device.attributes["%s"].special == true`, driverA),
+						},
+					}),
+				),
+			),
+			classes: objects(class(classA, driverA)),
+			slices: objects(sliceWithCapacityPools(slice1, node1, pool1, driverA,
+				objects(
+					counterSet(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu1": resource.MustParse("1"),
+							"cpu2": resource.MustParse("1"),
+							"cpu3": resource.MustParse("1"),
+							"cpu4": resource.MustParse("1"),
+							"cpu5": resource.MustParse("1"),
+							"cpu6": resource.MustParse("1"),
+							"cpu7": resource.MustParse("1"),
+							"cpu8": resource.MustParse("1"),
+						},
+					),
+					counterSet(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem1": resource.MustParse("10Gi"),
+							"mem2": resource.MustParse("10Gi"),
+							"mem3": resource.MustParse("10Gi"),
+							"mem4": resource.MustParse("10Gi"),
+							"mem5": resource.MustParse("10Gi"),
+							"mem6": resource.MustParse("10Gi"),
+							"mem7": resource.MustParse("10Gi"),
+							"mem8": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice(device1, nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(true),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu1": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem1": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-2", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu2": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem2": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-3", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu3": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem3": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-4", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu4": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem4": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-5", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu5": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem5": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-6", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu6": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem6": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-7", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu7": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem7": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-8", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu8": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem8": resource.MustParse("10Gi"),
+						},
+					),
+				),
+			)),
+			node: node(node1, region1),
+			expectResults: []any{allocationResult(
+				localNodeSelector(node1),
+				deviceAllocationResult(req0, driverA, pool1, "device-2", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-3", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-4", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-5", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-6", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-7", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-8", false),
+				deviceAllocationResult(req1, driverA, pool1, "device-1", false),
+			)},
+			expectAllocationAttempts: map[string]int64{
+				// We expect one allocation attempt for each of the two subrequests in the first request,
+				// and then attempts for both subrequests for the second request to be attempted for each
+				// of them. Only the last will succeed.
+				claim0: 11828,
+			},
+		},
+		"partitionable-devices-scenario-2": {
+			features: Features{
+				PartitionableDevices: true,
+			},
+			claimsToAllocate: objects(
+				claimWithRequests(claim0, nil,
+					request(req0, classA, 7),
+				),
+			),
+			classes: objects(class(classA, driverA)),
+			slices: objects(sliceWithCapacityPools(slice1, node1, pool1, driverA,
+				objects(
+					counterSet(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu1": resource.MustParse("1"),
+							"cpu2": resource.MustParse("1"),
+							"cpu3": resource.MustParse("1"),
+							"cpu4": resource.MustParse("1"),
+							"cpu5": resource.MustParse("1"),
+							"cpu6": resource.MustParse("1"),
+							"cpu7": resource.MustParse("1"),
+							"cpu8": resource.MustParse("1"),
+						},
+					),
+					counterSet(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("70Gi"),
+						},
+					),
+				),
+				partitionableDevice(device1, nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(true),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu1": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("20Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-2", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu2": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-3", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu3": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-4", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu4": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-5", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu5": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-6", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu6": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-7", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu7": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+				partitionableDevice("device-8", nil,
+					map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+						"special": {
+							BoolValue: ptr.To(false),
+						},
+					},
+					deviceCapacityConsumption(capacityPool1,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"cpu8": resource.MustParse("1"),
+						},
+					),
+					deviceCapacityConsumption(capacityPool2,
+						map[resourceapi.QualifiedName]resource.Quantity{
+							"mem": resource.MustParse("10Gi"),
+						},
+					),
+				),
+			)),
+			node: node(node1, region1),
+			expectResults: []any{allocationResult(
+				localNodeSelector(node1),
+				deviceAllocationResult(req0, driverA, pool1, "device-2", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-3", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-4", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-5", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-6", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-7", false),
+				deviceAllocationResult(req0, driverA, pool1, "device-8", false),
+			)},
+			expectAllocationAttempts: map[string]int64{
+				// We expect one allocation attempt for each of the two subrequests in the first request,
+				// and then attempts for both subrequests for the second request to be attempted for each
+				// of them. Only the last will succeed.
+				claim0: 5914,
+			},
+		},
 	}
 
 	for name, tc := range testcases {
