@@ -247,6 +247,13 @@ const (
 	// be selected.
 	DRAPrioritizedList featuregate.Feature = "DRAPrioritizedList"
 
+	// owner: @mortent
+	// kep: http://kep.k8s.io/5194
+	//
+	// Enables resource claims to be reserved for workloads,
+	// not just individual pods
+	DRAReservedForWorkloads featuregate.Feature = "DRAReservedForWorkloads"
+
 	// owner: @LionelJouin
 	// kep: http://kep.k8s.io/4817
 	//
