@@ -42,9 +42,10 @@ func (AllocatedDeviceStatus) SwaggerDoc() map[string]string {
 }
 
 var map_AllocationResult = map[string]string{
-	"":             "AllocationResult contains attributes of an allocated resource.",
-	"devices":      "Devices is the result of allocating devices.",
-	"nodeSelector": "NodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
+	"":                  "AllocationResult contains attributes of an allocated resource.",
+	"devices":           "Devices is the result of allocating devices.",
+	"nodeSelector":      "NodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
+	"ReservedForAnyPod": "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
 }
 
 func (AllocationResult) SwaggerDoc() map[string]string {
@@ -365,8 +366,9 @@ func (ResourceClaimList) SwaggerDoc() map[string]string {
 }
 
 var map_ResourceClaimSpec = map[string]string{
-	"":        "ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it.",
-	"devices": "Devices defines how to request devices.",
+	"":            "ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it.",
+	"devices":     "Devices defines how to request devices.",
+	"ReservedFor": "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers.",
 }
 
 func (ResourceClaimSpec) SwaggerDoc() map[string]string {

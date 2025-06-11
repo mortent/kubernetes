@@ -479,6 +479,7 @@ func autoConvert_v1beta2_AllocationResult_To_resource_AllocationResult(in *resou
 		return err
 	}
 	out.NodeSelector = (*core.NodeSelector)(unsafe.Pointer(in.NodeSelector))
+	out.ReservedForAnyPod = (*bool)(unsafe.Pointer(in.ReservedForAnyPod))
 	return nil
 }
 
@@ -492,6 +493,7 @@ func autoConvert_resource_AllocationResult_To_v1beta2_AllocationResult(in *resou
 		return err
 	}
 	out.NodeSelector = (*corev1.NodeSelector)(unsafe.Pointer(in.NodeSelector))
+	out.ReservedForAnyPod = (*bool)(unsafe.Pointer(in.ReservedForAnyPod))
 	return nil
 }
 
@@ -1218,6 +1220,7 @@ func autoConvert_v1beta2_ResourceClaimSpec_To_resource_ResourceClaimSpec(in *res
 	if err := Convert_v1beta2_DeviceClaim_To_resource_DeviceClaim(&in.Devices, &out.Devices, s); err != nil {
 		return err
 	}
+	out.ReservedFor = (*resource.ResourceClaimConsumerReference)(unsafe.Pointer(in.ReservedFor))
 	return nil
 }
 
@@ -1230,6 +1233,7 @@ func autoConvert_resource_ResourceClaimSpec_To_v1beta2_ResourceClaimSpec(in *res
 	if err := Convert_resource_DeviceClaim_To_v1beta2_DeviceClaim(&in.Devices, &out.Devices, s); err != nil {
 		return err
 	}
+	out.ReservedFor = (*resourcev1beta2.ResourceClaimConsumerReference)(unsafe.Pointer(in.ReservedFor))
 	return nil
 }
 

@@ -165,6 +165,12 @@
             }
           }
         ]
+      },
+      "ReservedFor": {
+        "apiGroup": "apiGroupValue",
+        "resource": "resourceValue",
+        "name": "nameValue",
+        "uid": "uidValue"
       }
     }
   }

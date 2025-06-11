@@ -14992,6 +14992,10 @@
     "io.k8s.api.resource.v1alpha3.AllocationResult": {
       "description": "AllocationResult contains attributes of an allocated resource.",
       "properties": {
+        "ReservedForAnyPod": {
+          "description": "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+          "type": "boolean"
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1alpha3.DeviceAllocationResult",
           "description": "Devices is the result of allocating devices."
@@ -15826,6 +15830,10 @@
     "io.k8s.api.resource.v1alpha3.ResourceClaimSpec": {
       "description": "ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it.",
       "properties": {
+        "ReservedFor": {
+          "$ref": "#/definitions/io.k8s.api.resource.v1alpha3.ResourceClaimConsumerReference",
+          "description": "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers."
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1alpha3.DeviceClaim",
           "description": "Devices defines how to request devices."
@@ -16140,6 +16148,10 @@
     "io.k8s.api.resource.v1beta1.AllocationResult": {
       "description": "AllocationResult contains attributes of an allocated resource.",
       "properties": {
+        "ReservedForAnyPod": {
+          "description": "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+          "type": "boolean"
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1beta1.DeviceAllocationResult",
           "description": "Devices is the result of allocating devices."
@@ -16873,6 +16885,10 @@
     "io.k8s.api.resource.v1beta1.ResourceClaimSpec": {
       "description": "ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it.",
       "properties": {
+        "ReservedFor": {
+          "$ref": "#/definitions/io.k8s.api.resource.v1beta1.ResourceClaimConsumerReference",
+          "description": "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers."
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1beta1.DeviceClaim",
           "description": "Devices defines how to request devices."
@@ -17187,6 +17203,10 @@
     "io.k8s.api.resource.v1beta2.AllocationResult": {
       "description": "AllocationResult contains attributes of an allocated resource.",
       "properties": {
+        "ReservedForAnyPod": {
+          "description": "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+          "type": "boolean"
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1beta2.DeviceAllocationResult",
           "description": "Devices is the result of allocating devices."
@@ -17923,6 +17943,10 @@
     "io.k8s.api.resource.v1beta2.ResourceClaimSpec": {
       "description": "ResourceClaimSpec defines what is being requested in a ResourceClaim and how to configure it.",
       "properties": {
+        "ReservedFor": {
+          "$ref": "#/definitions/io.k8s.api.resource.v1beta2.ResourceClaimConsumerReference",
+          "description": "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers."
+        },
         "devices": {
           "$ref": "#/definitions/io.k8s.api.resource.v1beta2.DeviceClaim",
           "description": "Devices defines how to request devices."

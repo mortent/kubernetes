@@ -66,6 +66,11 @@ spec:
     selfLink: selfLinkValue
     uid: uidValue
   spec:
+    ReservedFor:
+      apiGroup: apiGroupValue
+      name: nameValue
+      resource: resourceValue
+      uid: uidValue
     devices:
       config:
       - opaque:

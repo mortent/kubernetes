@@ -564,7 +564,7 @@ type ResourceClaimSpec struct {
 	//
 	// +featureGate=DRAReservedForWorkloads
 	// +optional
-	ReservedFor *ResourceClaimConsumerReference
+	ReservedFor *ResourceClaimConsumerReference `protobuf:"bytes,2,opt,name=reservedFor"`
 }
 
 // DeviceClaim defines how to request devices with a ResourceClaim.
@@ -1212,7 +1212,7 @@ type AllocationResult struct {
 	//
 	// +featureGate=DRAReservedForWorkloads
 	// +optional
-	ReservedForAnyPod *bool
+	ReservedForAnyPod *bool `protobuf:"varint,4,opt,name=reservedForAnyPod"`
 }
 
 // DeviceAllocationResult is the result of allocating devices.

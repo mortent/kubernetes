@@ -46953,6 +46953,13 @@ func schema_k8sio_api_resource_v1alpha3_AllocationResult(ref common.ReferenceCal
 							Ref:         ref("k8s.io/api/core/v1.NodeSelector"),
 						},
 					},
+					"ReservedForAnyPod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -48512,11 +48519,17 @@ func schema_k8sio_api_resource_v1alpha3_ResourceClaimSpec(ref common.ReferenceCa
 							Ref:         ref("k8s.io/api/resource/v1alpha3.DeviceClaim"),
 						},
 					},
+					"ReservedFor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers.",
+							Ref:         ref("k8s.io/api/resource/v1alpha3.ResourceClaimConsumerReference"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/resource/v1alpha3.DeviceClaim"},
+			"k8s.io/api/resource/v1alpha3.DeviceClaim", "k8s.io/api/resource/v1alpha3.ResourceClaimConsumerReference"},
 	}
 }
 
@@ -49035,6 +49048,13 @@ func schema_k8sio_api_resource_v1beta1_AllocationResult(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
 							Ref:         ref("k8s.io/api/core/v1.NodeSelector"),
+						},
+					},
+					"ReservedForAnyPod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 				},
@@ -50433,11 +50453,17 @@ func schema_k8sio_api_resource_v1beta1_ResourceClaimSpec(ref common.ReferenceCal
 							Ref:         ref("k8s.io/api/resource/v1beta1.DeviceClaim"),
 						},
 					},
+					"ReservedFor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers.",
+							Ref:         ref("k8s.io/api/resource/v1beta1.ResourceClaimConsumerReference"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/resource/v1beta1.DeviceClaim"},
+			"k8s.io/api/resource/v1beta1.DeviceClaim", "k8s.io/api/resource/v1beta1.ResourceClaimConsumerReference"},
 	}
 }
 
@@ -50956,6 +50982,13 @@ func schema_k8sio_api_resource_v1beta2_AllocationResult(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeSelector defines where the allocated resources are available. If unset, they are available everywhere.",
 							Ref:         ref("k8s.io/api/core/v1.NodeSelector"),
+						},
+					},
+					"ReservedForAnyPod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedForAnyPod specifies whether the ResourceClaim can be used by any pod referencing it. If set to true, the kubelet will not check whether the pod is listed in the staus.ReservedFor list before running the pod.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 				},
@@ -52355,11 +52388,17 @@ func schema_k8sio_api_resource_v1beta2_ResourceClaimSpec(ref common.ReferenceCal
 							Ref:         ref("k8s.io/api/resource/v1beta2.DeviceClaim"),
 						},
 					},
+					"ReservedFor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReservedFor specifies the resource that will be consuming the claim. If set, the reference will be copied into the status.ReservedFor list when the claim is allocated.\n\nWhen this field is set it is the responsibility of the entity that created the ResourceClaim to remove the reference from the status.ReservedFor list when there are no longer any pods consuming the claim.\n\nMost user-created ResourceClaims should not set this field. It is more typically used by ResourceClaims created and managed by controllers.",
+							Ref:         ref("k8s.io/api/resource/v1beta2.ResourceClaimConsumerReference"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/resource/v1beta2.DeviceClaim"},
+			"k8s.io/api/resource/v1beta2.DeviceClaim", "k8s.io/api/resource/v1beta2.ResourceClaimConsumerReference"},
 	}
 }
 

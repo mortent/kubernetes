@@ -12526,6 +12526,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1alpha3.AllocationResult
   map:
     fields:
+    - name: ReservedForAnyPod
+      type:
+        scalar: boolean
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1alpha3.DeviceAllocationResult
@@ -12995,6 +12998,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1alpha3.ResourceClaimSpec
   map:
     fields:
+    - name: ReservedFor
+      type:
+        namedType: io.k8s.api.resource.v1alpha3.ResourceClaimConsumerReference
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1alpha3.DeviceClaim
@@ -13150,6 +13156,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta1.AllocationResult
   map:
     fields:
+    - name: ReservedForAnyPod
+      type:
+        scalar: boolean
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1beta1.DeviceAllocationResult
@@ -13577,6 +13586,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta1.ResourceClaimSpec
   map:
     fields:
+    - name: ReservedFor
+      type:
+        namedType: io.k8s.api.resource.v1beta1.ResourceClaimConsumerReference
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1beta1.DeviceClaim
@@ -13732,6 +13744,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta2.AllocationResult
   map:
     fields:
+    - name: ReservedForAnyPod
+      type:
+        scalar: boolean
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1beta2.DeviceAllocationResult
@@ -14159,6 +14174,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.resource.v1beta2.ResourceClaimSpec
   map:
     fields:
+    - name: ReservedFor
+      type:
+        namedType: io.k8s.api.resource.v1beta2.ResourceClaimConsumerReference
     - name: devices
       type:
         namedType: io.k8s.api.resource.v1beta2.DeviceClaim

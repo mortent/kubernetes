@@ -69,6 +69,11 @@ func (in *AllocationResult) DeepCopyInto(out *AllocationResult) {
 		*out = new(corev1.NodeSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ReservedForAnyPod != nil {
+		in, out := &in.ReservedForAnyPod, &out.ReservedForAnyPod
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
@@ -840,6 +845,11 @@ func (in *ResourceClaimList) DeepCopyObject() runtime.Object {
 func (in *ResourceClaimSpec) DeepCopyInto(out *ResourceClaimSpec) {
 	*out = *in
 	in.Devices.DeepCopyInto(&out.Devices)
+	if in.ReservedFor != nil {
+		in, out := &in.ReservedFor, &out.ReservedFor
+		*out = new(ResourceClaimConsumerReference)
+		**out = **in
+	}
 	return
 }
 
