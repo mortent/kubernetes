@@ -555,6 +555,20 @@ type ResourceClaimSpec struct {
 	// it got removed. May be reused once decoding v1alpha3 is no longer
 	// supported.
 	// Controller string `json:"controller,omitempty" protobuf:"bytes,2,opt,name=controller"`
+
+	// ReservedFor specifies the resource that will be consuming the claim. If set, the
+	// reference will be copied into the status.ReservedFor list when the claim is allocated.
+	//
+	// When this field is set it is the responsibility of the entity that created the
+	// ResourceClaim to remove the reference from the status.ReservedFor list when there
+	// are no longer any pods consuming the claim.
+	//
+	// Most user-created ResourceClaims should not set this field. It is more typically
+	// used by ResourceClaims created and managed by controllers.
+	//
+	// +featureGate=DRAReservedForWorkloads
+	// +optional
+	ReservedFor *ResourceClaimConsumerReference
 }
 
 // DeviceClaim defines how to request devices with a ResourceClaim.
@@ -1199,6 +1213,14 @@ type AllocationResult struct {
 	// it got removed. May be reused once decoding v1alpha3 is no longer
 	// supported.
 	// Controller string `json:"controller,omitempty" protobuf:"bytes,4,opt,name=controller"`
+
+	// ReservedForAnyPod specifies whether the ResourceClaim can be used by
+	// any pod referencing it. If set to true, the kubelet will not check whether
+	// the pod is listed in the staus.ReservedFor list before running the pod.
+	//
+	// +featureGate=DRAReservedForWorkloads
+	// +optional
+	ReservedForAnyPod *bool
 }
 
 // DeviceAllocationResult is the result of allocating devices.
