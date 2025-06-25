@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -627,8 +629,7 @@ func (pl *DynamicResources) PostFilter(ctx context.Context, cs fwk.CycleState, p
 	// pick one claim randomly because there is no better heuristic.
 	for index := range state.unavailableClaims {
 		claim := state.claims[index]
-		if len(claim.Status.ReservedFor) == 0 ||
-			len(claim.Status.ReservedFor) == 1 && claim.Status.ReservedFor[0].UID == pod.UID {
+		if resourceclaim.NotReservedOrOnlyForPod(claim, pod) {
 			claim := claim.DeepCopy()
 			claim.Status.ReservedFor = nil
 			claim.Status.Allocation = nil
@@ -759,6 +760,10 @@ func (pl *DynamicResources) Unreserve(ctx context.Context, cs fwk.CycleState, po
 				logger.Error(err, "unreserve", "resourceclaim", klog.KObj(claim))
 			}
 		}
+		// TODO(mortent): Is this good enough?
+		// If the reference in the ReservedFor list was set from spec.ReservedFor and
+		// points to the workload, we don't clean up here. It will be up to the workload
+		// controller to fix this.
 	}
 }
 
@@ -862,10 +867,27 @@ func (pl *DynamicResources) bindClaim(ctx context.Context, state *stateData, ind
 			claim.Status.Allocation = allocation
 		}
 
-		// We can simply try to add the pod here without checking
+		// If spec.ReservedFor is set, we use that reference here. Otherwise, we use a reference to the
+		// current pod.
+		// We can simply try to add the reference here without checking
 		// preconditions. The apiserver will tell us with a
 		// non-conflict error if this isn't possible.
-		claim.Status.ReservedFor = append(claim.Status.ReservedFor, resourceapi.ResourceClaimConsumerReference{Resource: "pods", Name: pod.Name, UID: pod.UID})
+		if claim.Spec.ReservedFor != nil {
+			if len(claim.Status.ReservedFor) == 0 {
+				claim.Status.ReservedFor = append(claim.Status.ReservedFor, *claim.Spec.ReservedFor)
+				claim.Status.Allocation.ReservedForAnyPod = ptr.To(true)
+			} else {
+				// Just do some sanity checks here.
+				if length := len(claim.Status.ReservedFor); length > 1 {
+					return fmt.Errorf("found %d reservations, but expected at most one since spec.ReservedFor is set", length)
+				}
+				if !reflect.DeepEqual(claim.Status.ReservedFor[0], *claim.Spec.ReservedFor) {
+					return fmt.Errorf("found reservation that is different from spec.ReservedFor")
+				}
+			}
+		} else {
+			claim.Status.ReservedFor = append(claim.Status.ReservedFor, resourceapi.ResourceClaimConsumerReference{Resource: "pods", Name: pod.Name, UID: pod.UID})
+		}
 		updatedClaim, err := pl.clientset.ResourceV1beta1().ResourceClaims(claim.Namespace).UpdateStatus(ctx, claim, metav1.UpdateOptions{})
 		if err != nil {
 			if allocation != nil {

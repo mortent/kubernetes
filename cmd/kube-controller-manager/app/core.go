@@ -31,6 +31,7 @@ import (
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/quota/v1/generic"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/metadata"
 	restclient "k8s.io/client-go/rest"
@@ -444,6 +445,7 @@ func startResourceClaimController(ctx context.Context, controllerContext Control
 			PrioritizedList: utilfeature.DefaultFeatureGate.Enabled(features.DRAPrioritizedList),
 		},
 		controllerContext.ClientBuilder.ClientOrDie("resource-claim-controller"),
+		dynamic.NewForConfigOrDie(controllerContext.ClientBuilder.ConfigOrDie("resource-claim-controller")),
 		controllerContext.InformerFactory.Core().V1().Pods(),
 		controllerContext.InformerFactory.Resource().V1beta1().ResourceClaims(),
 		controllerContext.InformerFactory.Resource().V1beta1().ResourceClaimTemplates())

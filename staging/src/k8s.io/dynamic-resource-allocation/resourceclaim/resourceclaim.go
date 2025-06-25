@@ -97,11 +97,41 @@ func IsForPod(pod *v1.Pod, claim *resourceapi.ResourceClaim) error {
 // that the claim was reserved for.
 func IsReservedForPod(pod *v1.Pod, claim *resourceapi.ResourceClaim) bool {
 	for _, reserved := range claim.Status.ReservedFor {
-		if reserved.UID == pod.UID {
+		if isResourceClaimConsumerReferenceForPod(&reserved, pod) {
 			return true
 		}
 	}
 	return false
+}
+
+func IsReservedForNonPodWorkload(claim *resourceapi.ResourceClaim) bool {
+	// If there are no entries in the ReservedFor list, it is not currently
+	// reserved for non-pod workloads.
+	if len(claim.Status.ReservedFor) == 0 {
+		return false
+	}
+	// If there are a non-pod reference, there should only be one entry. But
+	// here we just go through the full list and look for non-pod references.
+	for _, ref := range claim.Status.ReservedFor {
+		if ref.APIGroup == "" && ref.Resource == "pods" {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// NotReservedOrOnlyForPod returns true if the claim has no consumers or if
+// the provided pod is the only one.
+func NotReservedOrOnlyForPod(claim *resourceapi.ResourceClaim, pod *v1.Pod) bool {
+	return len(claim.Status.ReservedFor) == 0 ||
+		len(claim.Status.ReservedFor) == 1 && isResourceClaimConsumerReferenceForPod(&claim.Status.ReservedFor[0], pod)
+}
+
+func isResourceClaimConsumerReferenceForPod(ref *resourceapi.ResourceClaimConsumerReference, pod *v1.Pod) bool {
+	return ref.APIGroup == "" &&
+		ref.Resource == "pods" &&
+		ref.UID == pod.UID
 }
 
 // CanBeReserved checks whether the claim could be reserved for another object.

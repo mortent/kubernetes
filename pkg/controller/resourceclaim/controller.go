@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
+	"k8s.io/client-go/dynamic"
 	v1informers "k8s.io/client-go/informers/core/v1"
 	resourceinformers "k8s.io/client-go/informers/resource/v1beta1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -129,6 +130,7 @@ func NewController(
 	logger klog.Logger,
 	features Features,
 	kubeClient clientset.Interface,
+	dynamicClient dynamic.Interface,
 	podInformer v1informers.PodInformer,
 	claimInformer resourceinformers.ResourceClaimInformer,
 	templateInformer resourceinformers.ResourceClaimTemplateInformer) (*Controller, error) {
@@ -548,8 +550,12 @@ func (ec *Controller) syncPod(ctx context.Context, namespace, name string) error
 				return err
 			}
 		}
+		// A claim can have an allocation with an empty ReservedFor list. This
+		// means that it can be deallocated so there shouldn't be any pods
+		// consuming the claim.
 		if claim.Status.Allocation != nil &&
 			!resourceclaim.IsReservedForPod(pod, claim) &&
+			!resourceclaim.IsReservedForNonPodWorkload(claim) &&
 			resourceclaim.CanBeReserved(claim) {
 			logger.V(5).Info("reserve claim for pod", "resourceClaim", klog.KObj(claim))
 			if err := ec.reserveForPod(ctx, pod, claim); err != nil {
