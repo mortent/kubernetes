@@ -46,6 +46,7 @@ type Features struct {
 	DeviceTaints         bool
 	PartitionableDevices bool
 	PrioritizedList      bool
+	ResourceSliceMixins  bool
 }
 
 // Set returns all features which are set to true.
@@ -68,6 +69,9 @@ func (f Features) Set() sets.Set[string] {
 	if f.PrioritizedList {
 		enabled.Insert("DRAPrioritizedList")
 	}
+	if f.ResourceSliceMixins {
+		enabled.Insert("DRAResourceSliceMixins")
+	}
 	return enabled
 }
 
@@ -76,6 +80,7 @@ var FeaturesAll = Features{
 	DeviceTaints:         true,
 	PartitionableDevices: true,
 	PrioritizedList:      true,
+	ResourceSliceMixins:  true,
 }
 
 type DeviceID struct {
