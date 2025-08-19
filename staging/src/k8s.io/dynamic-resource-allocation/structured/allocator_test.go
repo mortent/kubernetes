@@ -706,6 +706,47 @@ func TestAllocator(t *testing.T) {
 				deviceAllocationResult(req1, driverA, pool1, device2, false),
 			)},
 		},
+		"backtracking avoids permutations": {
+			claimsToAllocate: objects(claimWithRequests(
+				claim0,
+				nil,
+				// req1 needs two generic devices.
+				request(req1, classA, 2),
+				// req2 needs a specific device.
+				request(req2, classA, 1, resourceapi.DeviceSelector{
+					CEL: &resourceapi.CELDeviceSelector{
+						Expression: `device.attributes["driver-a"].type == "X"`,
+					},
+				}),
+			)),
+			classes: objects(class(classA, driverA)),
+			// The order of devices is chosen such that the allocator
+			// will initially pick {a, b} for req1. This will fail
+			// because req2 needs device "a". The allocator has to
+			// backtrack. The correct solution is {b, c} for req1
+			// and {a} for req2. The optimized allocator avoids
+			// testing {b, a} for req1 and thus finds the solution
+			// faster.
+			slices: unwrap(slice(slice1, node1, pool1, driverA,
+				device("a", nil, map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+					"type": {StringValue: ptr.To("X")},
+				}),
+				device("b", nil, map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+					"type": {StringValue: ptr.To("Y")},
+				}),
+				device("c", nil, map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+					"type": {StringValue: ptr.To("Y")},
+				}),
+			)),
+			node: node(node1, region1),
+
+			expectResults: []any{allocationResult(
+				localNodeSelector(node1),
+				deviceAllocationResult(req1, driverA, pool1, "b", false),
+				deviceAllocationResult(req1, driverA, pool1, "c", false),
+				deviceAllocationResult(req2, driverA, pool1, "a", false),
+			)},
+		},
 		"small-and-large-backtrack-claims": {
 			claimsToAllocate: objects(
 				claimWithRequests(

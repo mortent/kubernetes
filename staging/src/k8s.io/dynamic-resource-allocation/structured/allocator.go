@@ -290,7 +290,7 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node) (finalResult []
 
 	// All errors get created such that they can be returned by Allocate
 	// without further wrapping.
-	done, err := alloc.allocateOne(deviceIndices{}, false)
+	done, err := alloc.allocateOne(deviceIndices{}, false, deviceLocation{})
 	if errors.Is(err, errStop) {
 		return nil, nil
 	}
@@ -525,6 +525,13 @@ type deviceIndices struct {
 	deviceIndex     int // The index of a device within a request or subrequest.
 }
 
+// deviceLocation identifies a device by its position in the allocator's pools.
+type deviceLocation struct {
+	poolIndex          int
+	sliceIndex         int
+	deviceInSliceIndex int
+}
+
 type requestData struct {
 	// The request or subrequest which needs to be allocated.
 	// Never nil.
@@ -703,7 +710,7 @@ func lookupAttribute(device *draapi.BasicDevice, deviceID DeviceID, attributeNam
 // allocateSubRequest is true when trying to allocate one particular subrequest.
 // This allows the logic for subrequests to call allocateOne with the same
 // device index without causing infinite recursion.
-func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (bool, error) {
+func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool, startLocation deviceLocation) (bool, error) {
 	if r.claimIndex >= len(alloc.claimsToAllocate) {
 		// Done! If we were doing scoring, we would compare the current allocation result
 		// against the previous one, keep the best, and continue. Without scoring, we stop
@@ -715,7 +722,7 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 	claim := alloc.claimsToAllocate[r.claimIndex]
 	if r.requestIndex >= len(claim.Spec.Devices.Requests) {
 		// Done with the claim, continue with the next one.
-		return alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex + 1}, false)
+		return alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex + 1}, false, deviceLocation{})
 	}
 
 	// r.subRequestIndex is zero unless the for loop below is in the
@@ -737,7 +744,7 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 			}
 
 			r.subRequestIndex = subRequestIndex
-			success, err := alloc.allocateOne(r, true /* prevent infinite recusion */)
+			success, err := alloc.allocateOne(r, true /* prevent infinite recusion */, startLocation)
 			if err != nil {
 				return false, err
 			}
@@ -769,7 +776,7 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 		// Done with request, continue with next one. We have completed the work for
 		// the request or subrequest, so we can no longer be allocating devices for
 		// a subrequest.
-		return alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex, requestIndex: r.requestIndex + 1}, false)
+		return alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex, requestIndex: r.requestIndex + 1}, false, deviceLocation{})
 	}
 
 	// We can calculate this by adding the number of already allocated devices with the number
@@ -797,7 +804,7 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 			// get all of them, then there is no solution and we have to stop.
 			return false, nil
 		}
-		done, err := alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex, requestIndex: r.requestIndex, deviceIndex: r.deviceIndex + 1}, allocateSubRequest)
+		done, err := alloc.allocateOne(deviceIndices{claimIndex: r.claimIndex, requestIndex: r.requestIndex, deviceIndex: r.deviceIndex + 1}, allocateSubRequest, deviceLocation{})
 		if err != nil {
 			return false, err
 		}
@@ -810,15 +817,29 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 	}
 
 	// We need to find suitable devices.
-	for _, pool := range alloc.pools {
+	for poolIndex := startLocation.poolIndex; poolIndex < len(alloc.pools); poolIndex++ {
+		pool := alloc.pools[poolIndex]
 		// If the pool is not valid, then fail now. It's okay when pools of one driver
 		// are invalid if we allocate from some other pool, but it's not safe to
 		// allocated from an invalid pool.
 		if pool.IsInvalid {
 			return false, fmt.Errorf("pool %s is invalid: %s", pool.Pool, pool.InvalidReason)
 		}
-		for _, slice := range pool.Slices {
-			for deviceIndex := range slice.Spec.Devices {
+
+		sliceStart := 0
+		if poolIndex == startLocation.poolIndex {
+			sliceStart = startLocation.sliceIndex
+		}
+		for sliceIndex := sliceStart; sliceIndex < len(pool.Slices); sliceIndex++ {
+			slice := pool.Slices[sliceIndex]
+
+			deviceStart := 0
+			if poolIndex == startLocation.poolIndex &&
+				sliceIndex == startLocation.sliceIndex {
+				deviceStart = startLocation.deviceInSliceIndex
+			}
+			for deviceInSliceIndex := deviceStart; deviceInSliceIndex < len(slice.Spec.Devices); deviceInSliceIndex++ {
+				deviceIndex := deviceInSliceIndex
 				deviceID := DeviceID{Driver: pool.Driver, Pool: pool.Pool, Device: slice.Spec.Devices[deviceIndex].Name}
 
 				// Checking for "in use" is cheap and thus gets done first.
@@ -863,7 +884,12 @@ func (alloc *allocator) allocateOne(r deviceIndices, allocateSubRequest bool) (b
 					subRequestIndex: r.subRequestIndex,
 					deviceIndex:     r.deviceIndex + 1,
 				}
-				done, err := alloc.allocateOne(deviceKey, allocateSubRequest)
+				nextLocation := deviceLocation{
+					poolIndex:          poolIndex,
+					sliceIndex:         sliceIndex,
+					deviceInSliceIndex: deviceInSliceIndex + 1,
+				}
+				done, err := alloc.allocateOne(deviceKey, allocateSubRequest, nextLocation)
 				if err != nil {
 					return false, err
 				}
