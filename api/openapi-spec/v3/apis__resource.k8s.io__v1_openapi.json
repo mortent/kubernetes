@@ -287,7 +287,7 @@
         "type": "object"
       },
       "io.k8s.api.resource.v1.CounterSet": {
-        "description": "CounterSet defines a named set of counters that are available to be used by devices defined in the ResourceSlice.\n\nThe counters are not allocatable by themselves, but can be referenced by devices. When a device is allocated, the portion of counters it uses will no longer be available for use by other devices.",
+        "description": "CounterSet defines a named set of counters that are available to be used by devices defined in the ResourcePool.\n\nThe counters are not allocatable by themselves, but can be referenced by devices. When a device is allocated, the portion of counters it uses will no longer be available for use by other devices.",
         "properties": {
           "counters": {
             "additionalProperties": {
@@ -298,7 +298,7 @@
               ],
               "default": {}
             },
-            "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters in all sets is 32.",
+            "description": "Counters defines the set of counters for this CounterSet The name of each counter must be unique in that set and must be a DNS label.\n\nThe maximum number of counters in all sets is 256.",
             "type": "object"
           },
           "name": {
@@ -371,7 +371,7 @@
             "type": "object"
           },
           "consumesCounters": {
-            "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe total number of device counter consumption entries must be <= 32. In addition, the total number in the entire ResourceSlice must be <= 1024 (for example, 64 devices with 16 counters each).",
+            "description": "ConsumesCounters defines a list of references to sharedCounters and the set of counters that the device will consume from those counter sets.\n\nThere can only be a single entry per counterSet.\n\nThe maximum number of CounterSets per device is 4.",
             "items": {
               "allOf": [
                 {
@@ -775,7 +775,7 @@
               ],
               "default": {}
             },
-            "description": "Counters defines the counters that will be consumed by the device.\n\nThe maximum number counters in a device is 32. In addition, the maximum number of all counters in all devices is 1024 (for example, 64 devices with 16 counters each).",
+            "description": "Counters defines the counters that will be consumed by the device.\n\nThe maximum number of counters is 256.",
             "type": "object"
           }
         },
@@ -1567,11 +1567,11 @@
         "description": "ResourceSliceSpec contains the information published by the driver in one ResourceSlice.",
         "properties": {
           "allNodes": {
-            "description": "AllNodes indicates that all nodes have access to the resources in the pool.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.",
+            "description": "AllNodes indicates that all nodes have access to the resources in the pool.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set when the Devices field is set. If the SharedCounters field is set, none of the fields can be set.",
             "type": "boolean"
           },
           "devices": {
-            "description": "Devices lists some or all of the devices in this pool.\n\nMust not have more than 128 entries.",
+            "description": "Devices lists some or all of the devices in this pool.\n\nMust not have more than 128 entries.\n\nOnly one of Devices and SharedCounters can be set in a ResourceSlice.",
             "items": {
               "allOf": [
                 {
@@ -1589,7 +1589,7 @@
             "type": "string"
           },
           "nodeName": {
-            "description": "NodeName identifies the node which provides the resources in this pool. A field selector can be used to list only ResourceSlice objects belonging to a certain node.\n\nThis field can be used to limit access from nodes to ResourceSlices with the same node name. It also indicates to autoscalers that adding new nodes of the same type as some old node might also make new resources available.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set. This field is immutable.",
+            "description": "NodeName identifies the node which provides the resources in this pool. A field selector can be used to list only ResourceSlice objects belonging to a certain node.\n\nThis field can be used to limit access from nodes to ResourceSlices with the same node name. It also indicates to autoscalers that adding new nodes of the same type as some old node might also make new resources available.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set when the Devices field is set. If the SharedCounters field is set, none of the fields can be set.\n\nThis field is immutable.",
             "type": "string"
           },
           "nodeSelector": {
@@ -1598,10 +1598,10 @@
                 "$ref": "#/components/schemas/io.k8s.api.core.v1.NodeSelector"
               }
             ],
-            "description": "NodeSelector defines which nodes have access to the resources in the pool, when that pool is not limited to a single node.\n\nMust use exactly one term.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set."
+            "description": "NodeSelector defines which nodes have access to the resources in the pool, when that pool is not limited to a single node.\n\nMust use exactly one term.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set when the Devices field is set. If the SharedCounters field is set, none of the fields can be set."
           },
           "perDeviceNodeSelection": {
-            "description": "PerDeviceNodeSelection defines whether the access from nodes to resources in the pool is set on the ResourceSlice level or on each device. If it is set to true, every device defined the ResourceSlice must specify this individually.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set.",
+            "description": "PerDeviceNodeSelection defines whether the access from nodes to resources in the pool is set on the ResourceSlice level or on each device. If it is set to true, every device defined the ResourceSlice must specify this individually.\n\nExactly one of NodeName, NodeSelector, AllNodes, and PerDeviceNodeSelection must be set when the Devices field is set. If the SharedCounters field is set, none of the fields can be set.",
             "type": "boolean"
           },
           "pool": {
@@ -1614,7 +1614,7 @@
             "description": "Pool describes the pool that this ResourceSlice belongs to."
           },
           "sharedCounters": {
-            "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourceSlice.\n\nThe maximum number of counters in all sets is 32.",
+            "description": "SharedCounters defines a list of counter sets, each of which has a name and a list of counters available.\n\nThe names of the SharedCounters must be unique in the ResourcePool.\n\nOnly one of Devices and SharedCounters can be set in a ResourceSlice.\n\nThe maximum number of CounterSets is 8.",
             "items": {
               "allOf": [
                 {
