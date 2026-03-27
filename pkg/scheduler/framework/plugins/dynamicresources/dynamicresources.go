@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -93,6 +94,10 @@ type stateData struct {
 	// Allocator handles claims with structured parameters, which is all of them nowadays.
 	allocator structured.Allocator
 
+	// allocatedState saves the node device occupancy map gathered during PreFilter.
+	// Used to reconstruct the allocator during Filter simulation.
+	allocatedState *structured.AllocatedState
+
 	// mutex must be locked while accessing any of the fields below.
 	mutex sync.Mutex
 
@@ -109,10 +114,55 @@ type stateData struct {
 
 	// nodeAllocations caches the result of Filter for the nodes, its key is node name.
 	nodeAllocations map[string]nodeAllocation
+
+	// simulatedReleasedClaims tracks claims that are simulated as released during preemption dry-runs.
+	simulatedReleasedClaims sets.Set[string]
+
+	// simulatedRemovedUsersForClaim tracks which users (pods) were simulated as removed for a claim during preemption dry-runs.
+	simulatedRemovedUsersForClaim map[string]sets.Set[types.UID]
 }
 
-func (d *stateData) Clone() fwk.StateData {
-	return d
+func (s *stateData) Clone() fwk.StateData {
+	if s == nil {
+		return nil
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	copy := &stateData{
+		claims:              s.claims,              // read-only
+		draExtendedResource: s.draExtendedResource, // read-only
+		allocator:           s.allocator,           // read-only
+	}
+
+	if s.allocatedState != nil {
+		copy.allocatedState = &structured.AllocatedState{
+			AllocatedDevices:         s.allocatedState.AllocatedDevices.Clone(),
+			AllocatedSharedDeviceIDs: s.allocatedState.AllocatedSharedDeviceIDs.Clone(),
+			AggregatedCapacity:       s.allocatedState.AggregatedCapacity.Clone(),
+		}
+	}
+
+	if s.unavailableClaims != nil {
+		copy.unavailableClaims = s.unavailableClaims.Clone()
+	}
+	if s.informationsForClaim != nil {
+		copy.informationsForClaim = append([]informationForClaim(nil), s.informationsForClaim...)
+	}
+	if s.nodeAllocations != nil {
+		copy.nodeAllocations = maps.Clone(s.nodeAllocations)
+	}
+	if s.simulatedReleasedClaims != nil {
+		copy.simulatedReleasedClaims = s.simulatedReleasedClaims.Clone()
+	}
+	if s.simulatedRemovedUsersForClaim != nil {
+		copy.simulatedRemovedUsersForClaim = make(map[string]sets.Set[types.UID], len(s.simulatedRemovedUsersForClaim))
+		for k, v := range s.simulatedRemovedUsersForClaim {
+			copy.simulatedRemovedUsersForClaim[k] = v.Clone()
+		}
+	}
+
+	return copy
 }
 
 // This state is persisted in the PodGroup CycleState. Because we save the
@@ -217,6 +267,7 @@ func New(ctx context.Context, plArgs runtime.Object, fh fwk.Handle, fts feature.
 
 var _ fwk.PreEnqueuePlugin = &DynamicResources{}
 var _ fwk.PreFilterPlugin = &DynamicResources{}
+var _ fwk.PreFilterExtensions = &DynamicResources{}
 var _ fwk.FilterPlugin = &DynamicResources{}
 var _ fwk.PostFilterPlugin = &DynamicResources{}
 var _ fwk.ScorePlugin = &DynamicResources{}
@@ -662,6 +713,7 @@ func (pl *DynamicResources) PreFilter(ctx context.Context, state fwk.CycleState,
 			return nil, statusError(logger, err)
 		}
 		s.allocator = allocator
+		s.allocatedState = allocatedState
 		s.nodeAllocations = make(map[string]nodeAllocation)
 	}
 	s.claims = claims
@@ -698,6 +750,192 @@ func (pl *DynamicResources) validateDeviceClass(logger klog.Logger, deviceClassN
 
 // PreFilterExtensions returns prefilter extensions, pod add and remove.
 func (pl *DynamicResources) PreFilterExtensions() fwk.PreFilterExtensions {
+	return pl
+}
+
+// AddPod from pre-computed data in cycleState.
+func (pl *DynamicResources) AddPod(ctx context.Context, cycleState fwk.CycleState, podToSchedule *v1.Pod, podInfoToAdd fwk.PodInfo, nodeInfo fwk.NodeInfo) *fwk.Status {
+	if podInfoToAdd == nil || podInfoToAdd.GetPod() == nil {
+		return nil
+	}
+
+	state, err := getStateData(cycleState)
+	if err != nil {
+		return fwk.AsStatus(err)
+	}
+
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+
+	pod := podInfoToAdd.GetPod()
+	seenClaims := sets.New[string]()
+	for _, resource := range pod.Spec.ResourceClaims {
+		claimName, _, err := resourceclaim.Name(pod, &resource)
+		if err != nil {
+			if errors.Is(err, resourceclaim.ErrClaimNotFound) {
+				continue
+			}
+			return fwk.AsStatus(err)
+		}
+		if claimName == nil {
+			continue
+		}
+		name := *claimName
+		if seenClaims.Has(name) {
+			continue
+		}
+		seenClaims.Insert(name)
+
+		if state.simulatedRemovedUsersForClaim != nil && state.simulatedRemovedUsersForClaim[name] != nil {
+			state.simulatedRemovedUsersForClaim[name].Delete(pod.UID)
+		}
+		if state.simulatedReleasedClaims != nil && state.simulatedReleasedClaims.Has(name) {
+			state.simulatedReleasedClaims.Delete(name)
+			if pl.draManager != nil {
+				claim, err := pl.draManager.ResourceClaims().Get(pod.Namespace, name)
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						// Claim might have been legally deleted by a user during Pod termination
+						continue
+					}
+					return fwk.AsStatus(err)
+				}
+				pl.addClaimToAllocatedState(state.allocatedState, claim)
+			}
+		}
+	}
+
+	return nil
+}
+func (pl *DynamicResources) removeClaimFromAllocatedState(state *structured.AllocatedState, claim *resourceapi.ResourceClaim) {
+	if state == nil || claim == nil {
+		return
+	}
+	foreachAllocatedDevice(claim, func(deviceID structured.DeviceID) {
+		if state.AllocatedDevices != nil {
+			state.AllocatedDevices.Delete(deviceID)
+		}
+	}, pl.fts.EnableDRAConsumableCapacity, func(sharedDeviceID structured.SharedDeviceID) {
+		if state.AllocatedSharedDeviceIDs != nil {
+			state.AllocatedSharedDeviceIDs.Delete(sharedDeviceID)
+		}
+	}, func(capacity structured.DeviceConsumedCapacity) {
+		if state.AggregatedCapacity != nil {
+			state.AggregatedCapacity.Remove(capacity)
+		}
+	})
+}
+
+func (pl *DynamicResources) addClaimToAllocatedState(state *structured.AllocatedState, claim *resourceapi.ResourceClaim) {
+	if state == nil || claim == nil {
+		return
+	}
+	foreachAllocatedDevice(claim, func(deviceID structured.DeviceID) {
+		if state.AllocatedDevices == nil {
+			state.AllocatedDevices = sets.New[structured.DeviceID]()
+		}
+		state.AllocatedDevices.Insert(deviceID)
+	}, pl.fts.EnableDRAConsumableCapacity, func(sharedDeviceID structured.SharedDeviceID) {
+		if state.AllocatedSharedDeviceIDs == nil {
+			state.AllocatedSharedDeviceIDs = sets.New[structured.SharedDeviceID]()
+		}
+		state.AllocatedSharedDeviceIDs.Insert(sharedDeviceID)
+	}, func(capacity structured.DeviceConsumedCapacity) {
+		if state.AggregatedCapacity == nil {
+			state.AggregatedCapacity = structured.NewConsumedCapacityCollection()
+		}
+		state.AggregatedCapacity.Insert(capacity)
+	})
+}
+
+// RemovePod from pre-computed data in cycleState.
+func (pl *DynamicResources) RemovePod(ctx context.Context, cycleState fwk.CycleState, podToSchedule *v1.Pod, podInfoToRemove fwk.PodInfo, nodeInfo fwk.NodeInfo) *fwk.Status {
+	if podInfoToRemove == nil || podInfoToRemove.GetPod() == nil {
+		return nil
+	}
+
+	state, err := getStateData(cycleState)
+	if err != nil {
+		return fwk.AsStatus(err)
+	}
+
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+
+	if state.simulatedReleasedClaims == nil {
+		state.simulatedReleasedClaims = sets.New[string]()
+	}
+	if state.simulatedRemovedUsersForClaim == nil {
+		state.simulatedRemovedUsersForClaim = make(map[string]sets.Set[types.UID])
+	}
+
+	pod := podInfoToRemove.GetPod()
+	seenClaims := sets.New[string]()
+	for _, resource := range pod.Spec.ResourceClaims {
+		claimName, _, err := resourceclaim.Name(pod, &resource)
+		if err != nil {
+			if errors.Is(err, resourceclaim.ErrClaimNotFound) {
+				continue
+			}
+			return fwk.AsStatus(err)
+		}
+		if claimName == nil {
+			continue
+		}
+		name := *claimName
+		if seenClaims.Has(name) {
+			continue
+		}
+		seenClaims.Insert(name)
+
+		if _, ok := state.simulatedRemovedUsersForClaim[name]; !ok {
+			state.simulatedRemovedUsersForClaim[name] = sets.New[types.UID]()
+		}
+		state.simulatedRemovedUsersForClaim[name].Insert(pod.UID)
+
+		simulatedUsersCount := state.simulatedRemovedUsersForClaim[name].Len()
+		actualUsersCount := 1 // Assume non-shared by default if draManager is not available (e.g. in simple tests)
+
+		if pl.draManager != nil {
+			claim, err := pl.draManager.ResourceClaims().Get(pod.Namespace, name)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					// The claim might have been completely deleted; resources are already freed.
+					continue
+				}
+				return fwk.AsStatus(err)
+			}
+			actualUsersCount = len(claim.Status.ReservedFor)
+
+			canRelease := false
+			if simulatedUsersCount >= actualUsersCount {
+				canRelease = true
+				// Preemption for PodGroups safely fails: if the claim is reserved for a PodGroup (or any non-Pod API entity),
+				// we cannot accurately count the local Pod consumers from len(ReservedFor).
+				// We block its release to prevent premature eviction of the shared resources.
+				// Additionally, if the claim is shared with a pod on another node (or a pod not being evicted),
+				// the exact UIDs of all reserved consumers MUST be present in the simulated removed users.
+				for _, consumer := range claim.Status.ReservedFor {
+					if consumer.Resource != "pods" || consumer.APIGroup != "" {
+						canRelease = false
+						break
+					}
+					if !state.simulatedRemovedUsersForClaim[name].Has(consumer.UID) {
+						canRelease = false
+						break
+					}
+				}
+			}
+
+			if canRelease {
+				state.simulatedReleasedClaims.Insert(name)
+				pl.removeClaimFromAllocatedState(state.allocatedState, claim)
+			}
+		} else if simulatedUsersCount >= actualUsersCount {
+			state.simulatedReleasedClaims.Insert(name)
+		}
+	}
+
 	return nil
 }
 
@@ -812,7 +1050,20 @@ func (pl *DynamicResources) Filter(ctx context.Context, cs fwk.CycleState, pod *
 	// Use allocator to check the node and cache the result in case that the node is picked.
 	var allocations []resourceapi.AllocationResult
 	var nodeAllocatableClaimStatus []v1.NodeAllocatableResourceClaimStatus
-	if state.allocator != nil {
+	localAllocator := state.allocator
+	if localAllocator != nil {
+		if len(state.simulatedReleasedClaims) > 0 && state.allocatedState != nil {
+			slices, err := pl.draManager.ResourceSlices().ListWithDeviceTaintRules()
+			if err != nil {
+				return fwk.AsStatus(err)
+			}
+			features := AllocatorFeatures(pl.fts)
+			allocator, err := structured.NewAllocator(ctx, features, *state.allocatedState, pl.draManager.DeviceClasses(), slices, pl.celCache)
+			if err != nil {
+				return fwk.AsStatus(err)
+			}
+			localAllocator = allocator
+		}
 		allocCtx := ctx
 		if loggerV := logger.V(5); loggerV.Enabled() {
 			allocCtx = klog.NewContext(allocCtx, klog.LoggerWithValues(logger, "node", klog.KObj(node)))
@@ -845,7 +1096,7 @@ func (pl *DynamicResources) Filter(ctx context.Context, cs fwk.CycleState, pod *
 			}
 			claimsToAllocate = append(claimsToAllocate, claim)
 		}
-		allocationResult, err := state.allocator.Allocate(allocCtx, node, claimsToAllocate)
+		allocationResult, err := localAllocator.Allocate(allocCtx, node, claimsToAllocate)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			// Timeouts are potentially transient. Return Error
@@ -899,7 +1150,7 @@ func (pl *DynamicResources) Filter(ctx context.Context, cs fwk.CycleState, pod *
 	}
 
 	// Store information in state while holding the mutex.
-	if state.allocator != nil || len(unavailableClaims) > 0 {
+	if localAllocator != nil || len(unavailableClaims) > 0 {
 		state.mutex.Lock()
 		defer state.mutex.Unlock()
 	}
@@ -918,7 +1169,7 @@ func (pl *DynamicResources) Filter(ctx context.Context, cs fwk.CycleState, pod *
 		return statusUnschedulable(logger, "resourceclaim not available on the node", "pod", klog.KObj(pod))
 	}
 
-	if state.allocator != nil {
+	if localAllocator != nil {
 		state.nodeAllocations[node.Name] = nodeAllocation{
 			allocationResults:                    allocations,
 			extendedResourceClaim:                nodeExtendedResourceClaim,
@@ -1763,6 +2014,19 @@ func statusUnschedulable(logger klog.Logger, reason string, kv ...interface{}) *
 		kv = append(kv, "reason", reason)
 		// nolint: logcheck // warns because it cannot check key/values
 		loggerV.Info("pod unschedulable", kv...)
+	}
+	return fwk.NewStatus(fwk.Unschedulable, reason)
+}
+
+// statusUnschedulableAndUnresolvable ensures that there is a log message associated with the
+// line where the status originated.
+func statusUnschedulableAndUnresolvable(logger klog.Logger, reason string, kv ...interface{}) *fwk.Status {
+	if loggerV := logger.V(5); loggerV.Enabled() {
+		helper, loggerV := loggerV.WithCallStackHelper()
+		helper()
+		kv = append(kv, "reason", reason)
+		// nolint: logcheck // warns because it cannot check key/values
+		loggerV.Info("pod unschedulable and unresolvable", kv...)
 	}
 	return fwk.NewStatus(fwk.UnschedulableAndUnresolvable, reason)
 }
