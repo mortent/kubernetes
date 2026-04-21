@@ -35,19 +35,19 @@ import (
 	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
-func testPreemption(tCtx ktesting.TContext, alphaApisEnabled, betaApisEnabled bool) {
+func testPreemption(tCtx ktesting.TContext, enabled bool) {
 	tCtx.Parallel()
 
 	startScheduler(tCtx)
 	startClaimController(tCtx)
 
-	runSubTest(tCtx, "direct-claim-preemption", testDirectClaimPreemption)
-	runSubTest(tCtx, "template-preemption", testTemplatePreemption)
-	runSubTest(tCtx, "priority-aware-preemption", testPriorityAwarePreemption)
-	if alphaApisEnabled {
+	if !enabled {
+		runSubTest(tCtx, "preemption-disabled", testPreemptionDisabled)
+	} else {
+		runSubTest(tCtx, "direct-claim-preemption", testDirectClaimPreemption)
+		runSubTest(tCtx, "template-preemption", testTemplatePreemption)
+		runSubTest(tCtx, "priority-aware-preemption", testPriorityAwarePreemption)
 		runSubTest(tCtx, "podgroup-preemption", testPodGroupPreemption)
-	}
-	if betaApisEnabled {
 		runSubTest(tCtx, "consumable-capacity-preemption", testConsumableCapacityPreemption)
 		runSubTest(tCtx, "partitionable-devices-preemption", testPartitionableDevicesPreemption)
 		runSubTest(tCtx, "binding-conditions-preemption", testBindingConditionsPreemption)
@@ -99,6 +99,53 @@ func testDirectClaimPreemption(tCtx ktesting.TContext) {
 	waitForPodPreempted(tCtx, namespace, victim.Name)
 
 	waitForClaimReleased(tCtx, namespace, victimClaim.Name)
+}
+
+// testPreemptionDisabled verifies that preemption fails for direct claims
+// when the DRAPreemption feature gate is disabled.
+func testPreemptionDisabled(tCtx ktesting.TContext) {
+	tCtx.Parallel()
+	namespace := createTestNamespace(tCtx, nil)
+
+	class, driverName := createTestClass(tCtx, namespace)
+
+	// Create a single device slice on worker-0
+	slice := st.MakeResourceSlice("worker-0", driverName).Devices("device-1")
+	createSlice(tCtx, slice.Obj())
+
+	lowPriority := createPriorityClass(tCtx, namespace, "low-priority", 100)
+	highPriority := createPriorityClass(tCtx, namespace, "high-priority", 200)
+
+	// A low priority pod with a single claim takes the only device.
+	victimClaim := createClaim(tCtx, namespace, "-victim", class, claim)
+	victimPod := podWithClaimName.DeepCopy()
+	victimPod.Spec.PriorityClassName = lowPriority
+	victim := createPod(tCtx, namespace, "-victim", victimPod, victimClaim)
+
+	// Wait for victim to be scheduled
+	victim = waitForPodScheduled(tCtx, namespace, victim.Name)
+
+	// A high priority pod references a claim requesting a device from the same class.
+	preemptorClaim := createClaim(tCtx, namespace, "-preemptor", class, claim)
+	preemptorPod := podWithClaimName.DeepCopy()
+	preemptorPod.Spec.PriorityClassName = highPriority
+	preemptor := createPod(tCtx, namespace, "-preemptor", preemptorPod, preemptorClaim)
+
+	// Preemptor should FAIL to be scheduled because without the fix,
+	// it cannot find victims holding direct claims!
+	waitForPodUnschedulable(tCtx, namespace, preemptor.Name)
+}
+
+func waitForPodUnschedulable(tCtx ktesting.TContext, namespace, podName string) {
+	tCtx.Helper()
+	tCtx.Eventually(func(tCtx ktesting.TContext) bool {
+		p, err := tCtx.Client().CoreV1().Pods(namespace).Get(tCtx, podName, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+		_, cond := podutil.GetPodCondition(&p.Status, v1.PodScheduled)
+		return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == v1.PodReasonUnschedulable
+	}).WithTimeout(30 * time.Second).Should(gomega.BeTrue(), fmt.Sprintf("Pod %s should be unschedulable", podName))
 }
 
 // testTemplatePreemption verifies that preemption works when pods use ResourceClaimTemplates.

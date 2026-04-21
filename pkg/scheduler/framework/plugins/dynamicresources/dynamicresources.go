@@ -755,6 +755,10 @@ func (pl *DynamicResources) PreFilterExtensions() fwk.PreFilterExtensions {
 
 // AddPod from pre-computed data in cycleState.
 func (pl *DynamicResources) AddPod(ctx context.Context, cycleState fwk.CycleState, podToSchedule *v1.Pod, podInfoToAdd fwk.PodInfo, nodeInfo fwk.NodeInfo) *fwk.Status {
+	if !pl.fts.EnableDRAPreemption {
+		return nil
+	}
+
 	if podInfoToAdd == nil || podInfoToAdd.GetPod() == nil {
 		return nil
 	}
@@ -850,6 +854,10 @@ func (pl *DynamicResources) addClaimToAllocatedState(state *structured.Allocated
 
 // RemovePod from pre-computed data in cycleState.
 func (pl *DynamicResources) RemovePod(ctx context.Context, cycleState fwk.CycleState, podToSchedule *v1.Pod, podInfoToRemove fwk.PodInfo, nodeInfo fwk.NodeInfo) *fwk.Status {
+	if !pl.fts.EnableDRAPreemption {
+		return nil
+	}
+
 	if podInfoToRemove == nil || podInfoToRemove.GetPod() == nil {
 		return nil
 	}

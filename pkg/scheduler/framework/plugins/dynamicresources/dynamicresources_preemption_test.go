@@ -278,7 +278,12 @@ func TestRemovePod(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockManager := &mockPreemptionDRAManager{claims: tc.claims}
-			pl := &DynamicResources{draManager: mockManager}
+			pl := &DynamicResources{
+				draManager: mockManager,
+				fts: feature.Features{
+					EnableDRAPreemption: true,
+				},
+			}
 
 			cycleState := framework.NewCycleState()
 			cycleState.Write(stateKey, tc.initialState)
@@ -474,7 +479,12 @@ func TestAddPod(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockManager := &mockPreemptionDRAManager{claims: tc.claims}
-			pl := &DynamicResources{draManager: mockManager}
+			pl := &DynamicResources{
+				draManager: mockManager,
+				fts: feature.Features{
+					EnableDRAPreemption: true,
+				},
+			}
 
 			cycleState := framework.NewCycleState()
 			cycleState.Write(stateKey, tc.initialState)
@@ -505,6 +515,9 @@ func TestSharedClaimsPreemption(t *testing.T) {
 
 	pl := &DynamicResources{
 		draManager: mockManager,
+		fts: feature.Features{
+			EnableDRAPreemption: true,
+		},
 	}
 
 	state := &stateData{
@@ -733,10 +746,13 @@ func TestPreemptionEndToEnd(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			feats := feature.Features{}
+			feats := feature.Features{
+				EnableDRAPreemption: true,
+			}
 
 			testCtx := setup(tCtx, nil, nil, nil, []*resourceapi.DeviceClass{testClass}, nil, []apiruntime.Object{testSlice}, feats, false, nil)
 			pl := testCtx.p
+			pl.fts.EnableDRAPreemption = true
 
 			mockManager.SharedDRAManager = testCtx.draManager
 			pl.draManager = mockManager

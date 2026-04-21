@@ -197,6 +197,12 @@ const (
 	// when a container uses the allocated device.
 	DRAAdminAccess featuregate.Feature = "DRAAdminAccess"
 
+	// owner: @mortent
+	//
+	// Enables support for proper preemption simulation in DRA,
+	// using pod.Spec.ResourceClaims instead of pod.Status.ResourceClaimStatuses.
+	DRAPreemption featuregate.Feature = "DRAPreemption"
+
 	// owner: @sunya-ch
 	// kep: https://kep.k8s.io/5075
 	//
@@ -1349,6 +1355,10 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.34"), Default: true, PreRelease: featuregate.Beta},
 		{Version: version.MustParse("1.36"), Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // GA in 1.36; remove in 1.39
+	},
+
+	DRAPreemption: {
+		{Version: version.MustParse("1.36"), Default: false, PreRelease: featuregate.Alpha},
 	},
 
 	DRAConsumableCapacity: {
