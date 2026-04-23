@@ -1138,3 +1138,65 @@ func TestTerminatingReplicas(t *testing.T) {
 		t.Fatalf("len(pods) = %d, want 7", len(pods.Items))
 	}
 }
+
+func TestSyncReplicaSetDeletePreconditionsIntegration(t *testing.T) {
+	tCtx, closeFn, rm, informers, clientSet := rmSetup(t)
+	defer closeFn()
+	
+	ns := framework.CreateNamespaceOrDie(clientSet, "test-delete-preconditions", t)
+	defer framework.DeleteNamespaceOrDie(clientSet, ns, t)
+	
+	labelMap := labelMap()
+	rs := newRS("rs", ns.Name, 1)
+	
+	// Create RS
+	createdRSs, _ := createRSsPods(t, clientSet, []*apps.ReplicaSet{rs}, []*v1.Pod{})
+	rs = createdRSs[0]
+	
+	// Start controller
+	stopControllers := runControllerAndInformers(t, rm, informers, 0)
+	defer stopControllers()
+	
+	waitRSStable(t, clientSet, rs)
+	
+	podClient := clientSet.CoreV1().Pods(ns.Name)
+	pods := getPods(t, podClient, labelMap)
+	if len(pods.Items) != 1 {
+		t.Fatalf("len(pods) = %d, want 1", len(pods.Items))
+	}
+	pod := &pods.Items[0]
+	
+	// Simulate external orphaning by updating labels
+	// This will change the ResourceVersion on the server
+	newLabelMap := map[string]string{"foo": "baz"}
+	pod = updatePod(t, podClient, pod.Name, func(p *v1.Pod) {
+		p.Labels = newLabelMap
+	})
+	
+	// Now scale down to 0
+	rsClient := clientSet.AppsV1().ReplicaSets(ns.Name)
+	updateRS(t, rsClient, rs.Name, func(r *apps.ReplicaSet) {
+		r.Spec.Replicas = ptr.To[int32](0)
+	})
+	
+	// Verify that the ReplicaSet status shows 0 replicas because the pod is orphaned and no longer matches selector
+	err := wait.PollUntilContextTimeout(tCtx, interval, timeout, true, func(ctx context.Context) (bool, error) {
+		currentRS, err := rsClient.Get(ctx, rs.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return currentRS.Status.Replicas == 0, nil
+	})
+	if err != nil {
+		t.Fatalf("ReplicaSet status should update to 0 replicas: %v", err)
+	}
+	
+	// Let's check if the pod still exists after reconciliation
+	newPod, err := podClient.Get(tCtx, pod.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Pod should still exist because deletion should fail on precondition: %v", err)
+	}
+	if !reflect.DeepEqual(newPod.Labels, newLabelMap) {
+		t.Errorf("Pod labels should still be the new ones, got %v", newPod.Labels)
+	}
+}

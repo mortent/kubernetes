@@ -40,9 +40,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -1363,6 +1365,74 @@ func shuffle(controllers []*apps.ReplicaSet) []*apps.ReplicaSet {
 		shuffled[i] = controllers[randIndexes[i]]
 	}
 	return shuffled
+}
+
+func TestSyncReplicaSetDeletePreconditions(t *testing.T) {
+	_, ctx := ktesting.NewTestContext(t)
+	labelMap := map[string]string{"foo": "bar"}
+	rs := newReplicaSet(1, labelMap)
+	
+	// Use fake clientset with the RS object
+	client := fake.NewSimpleClientset(rs)
+	
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	manager, informers := testNewReplicaSetControllerFromClient(t, client, stopCh, BurstReplicas)
+
+	// 1 running pod belonging to the ReplicaSet
+	podList := newPodList(nil, 1, v1.PodRunning, labelMap, rs, "pod")
+	pod := &podList.Items[0]
+	informers.Core().V1().Pods().Informer().GetIndexer().Add(pod)
+
+	// Trigger deletion by setting replicas to 0
+	*(rs.Spec.Replicas) = 0
+	informers.Apps().V1().ReplicaSets().Informer().GetIndexer().Add(rs)
+
+	// Prepend a reactor to simulate precondition failure
+	client.PrependReactor("delete", "pods", func(action core.Action) (bool, runtime.Object, error) {
+		deleteAction := action.(core.DeleteAction)
+		opts := deleteAction.GetDeleteOptions()
+		if opts.Preconditions != nil && opts.Preconditions.ResourceVersion != nil {
+			// Simulate that the precondition fails because the current RV on server is different
+			if *opts.Preconditions.ResourceVersion == "1" {
+				return true, nil, apierrors.NewConflict(schema.GroupResource{Resource: "pods"}, pod.Name, fmt.Errorf("Precondition failed: ResourceVersion does not match"))
+			}
+		}
+		return false, nil, nil
+	})
+
+	// Set pod's initial RV to "1" for the test setup
+	pod.ResourceVersion = "1"
+	
+	// Use RealPodControl to trigger the client call
+	podControl := controller.RealPodControl{
+		KubeClient: client,
+		Recorder:   record.NewFakeRecorder(100),
+	}
+	manager.podControl = podControl
+
+	// Run sync
+	manager.syncReplicaSet(ctx, GetKey(rs, t))
+
+	// Verify that deletion was attempted
+	actions := client.Actions()
+	deleteAttempted := false
+	for _, action := range actions {
+		if action.GetVerb() == "delete" && action.GetResource().Resource == "pods" {
+			deleteAttempted = true
+			break
+		}
+	}
+	if !deleteAttempted {
+		t.Errorf("Deletion was not attempted")
+	}
+
+	// Verify that expectations are satisfied after failure (they are decremented on error)
+	rsKey, _ := controller.KeyFunc(rs)
+	satisfied := manager.expectations.SatisfiedExpectations(klog.FromContext(ctx), rsKey)
+	if !satisfied {
+		t.Errorf("Expectations should be satisfied after failure")
+	}
 }
 
 func TestOverlappingRSs(t *testing.T) {
