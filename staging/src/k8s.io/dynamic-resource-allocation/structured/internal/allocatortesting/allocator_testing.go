@@ -7054,6 +7054,54 @@ func TestAllocator(t *testing.T,
 				internal.Stable: 32,
 			},
 		},
+		"test-for-dranet": {
+			features: Features{
+				PartitionableDevices: true,
+				ConsumableCapacity:   true,
+			},
+			claimsToAllocate: objects(
+				claim(claim0).withRequests(
+					deviceRequest(req0, classA, 1).withCapacityRequest(ptr.To(one)),
+					deviceRequest(req1, classA, 1).withCapacityRequest(ptr.To(one)),
+				),
+			),
+			classes: objects(class(classA, driverA)),
+			slices: unwrapResourceSlices(
+				sliceWithDevices(slice1, node1, resourcePool(pool1, 2), driverA,
+					device(device1, map[resourceapi.QualifiedName]resource.Quantity{
+						capacity0: two,
+					}, nil).withDeviceCounterConsumption(
+						deviceCounterConsumption(counterSet1,
+							map[string]resource.Quantity{
+								"counter": one,
+							},
+						),
+					),
+					device(device2, map[resourceapi.QualifiedName]resource.Quantity{
+						capacity0: two,
+					}, nil).withDeviceCounterConsumption(
+						deviceCounterConsumption(counterSet1,
+							map[string]resource.Quantity{
+								"counter": one,
+							},
+						),
+					).withAllowMultipleAllocations(),
+				),
+				sliceWithCounterSets(slice2, node1, resourcePool(pool1, 2), driverA,
+					counterSet(counterSet1,
+						map[string]resource.Quantity{
+							"counter": one,
+						},
+					),
+				),
+			),
+			node: node(node1, region1),
+			expectResults: []any{allocationResult(
+				localNodeSelector(node1),
+				deviceRequestAllocationResult(req0, driverA, pool1, device2).withConsumedCapacity(&fixedShareID, map[resourceapi.QualifiedName]resource.Quantity{capacity0: one}),
+				deviceRequestAllocationResult(req1, driverA, pool1, device2).withConsumedCapacity(&fixedShareID, map[resourceapi.QualifiedName]resource.Quantity{capacity0: one}),
+			)},
+		},
 	}
 
 	RunTestAllocator(t, supportedFeatures, newAllocator, testcases)
