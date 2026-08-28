@@ -53,7 +53,7 @@ func ExtractPodNodeAllocatableResourceClaimStatus(logger klog.Logger, state fwk.
 		return nil
 	}
 
-	if nodeAlloc, exists := draState.nodeAllocations[nodeName]; exists {
+	if nodeAlloc, exists := draState.nodeAllocations.Get(nodeName); exists {
 		return nodeAlloc.nodeAllocatableResourceClaimStatuses
 	}
 

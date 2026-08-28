@@ -534,7 +534,7 @@ func (pl *DynamicResources) createExtendedResourceClaimInAPI(
 	logger := klog.FromContext(ctx)
 	logger.V(5).Info("preparing to create claim for extended resources", "pod", klog.KObj(pod), "node", nodeName)
 	// Get the node-specific claim that was prepared during Filter phase
-	nodeAllocation, ok := state.nodeAllocations[nodeName]
+	nodeAllocation, ok := state.nodeAllocations.Get(nodeName)
 	if !ok || nodeAllocation.extendedResourceClaim == nil {
 		return nil, fmt.Errorf("extended resource claim not found for node %s", nodeName)
 	}
@@ -567,7 +567,7 @@ func (pl *DynamicResources) patchPodExtendedResourceClaimStatus(
 	state *stateData,
 ) error {
 	var cer []v1.ContainerExtendedResourceRequest
-	if nodeAllocation, ok := state.nodeAllocations[nodeName]; ok {
+	if nodeAllocation, ok := state.nodeAllocations.Get(nodeName); ok {
 		cer = nodeAllocation.containerResourceRequestMappings
 	}
 	if len(cer) == 0 {

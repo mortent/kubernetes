@@ -166,6 +166,7 @@ func run(tCtx ktesting.TContext, whatRE string) {
 				// without a timeout, the test doesn't run too long, but long enough that a short timeout triggers.
 				runSubTest(tCtx, "FilterTimeout", func(tCtx ktesting.TContext) { testFilterTimeout(tCtx, 21) })
 				runSubTest(tCtx, "UsesAllResources", testUsesAllResources)
+				runSubTest(tCtx, "Preemption", func(tCtx ktesting.TContext) { testPreemption(tCtx, false) })
 			},
 		},
 		// Compatibility groups with consumable capacity explicitly disabled.

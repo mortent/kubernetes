@@ -6379,3 +6379,10 @@ func TestPreQueueingHint_SharedClaimMultiplePods(t *testing.T) {
 		t.Errorf("expected 3 pods, got %d: %v", len(got.Pods), got.Pods)
 	}
 }
+
+func TestPreFilterExtensions(t *testing.T) {
+	pl := &DynamicResources{}
+	if pl.PreFilterExtensions() == nil {
+		t.Errorf("expected PreFilterExtensions() to be not nil")
+	}
+}

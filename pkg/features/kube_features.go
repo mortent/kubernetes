@@ -300,6 +300,13 @@ const (
 	DRAPartitionableDevicesType featuregate.Feature = "DRAPartitionableDevicesType"
 
 	// owner: @mortent
+	// kep: https://kep.k8s.io/5690
+	//
+	// Enables support for proper preemption simulation in DRA,
+	// using pod.Spec.ResourceClaims instead of pod.Status.ResourceClaimStatuses.
+	DRAPreemption featuregate.Feature = "DRAPreemption"
+
+	// owner: @mortent
 	// kep: http://kep.k8s.io/4816
 	//
 	// Enables support for providing a prioritized list of requests
@@ -1507,6 +1514,10 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 
 	DRAPartitionableDevicesType: {
 		{Version: version.MustParse("1.37"), Default: false, PreRelease: featuregate.Alpha},
+	},
+
+	DRAPreemption: {
+		{Version: version.MustParse("1.38"), Default: false, PreRelease: featuregate.Alpha},
 	},
 
 	DRAPrioritizedList: {
